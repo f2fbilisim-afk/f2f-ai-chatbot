@@ -81,7 +81,7 @@ class F2F_AI_Chatbot_Admin {
 		$out      = $defaults;
 
 		$text_keys = array(
-			'model',
+			'license_key',
 			'bot_name',
 			'launcher_label',
 			'teaser_title',
@@ -113,9 +113,11 @@ class F2F_AI_Chatbot_Admin {
 		);
 
 		$out['enabled'] = empty( $input['enabled'] ) ? '0' : '1';
-		$out['api_key'] = isset( $input['api_key'] ) ? sanitize_text_field( $input['api_key'] ) : '';
-		if ( '' === $out['api_key'] && ! empty( $current['api_key'] ) && empty( $input['api_key_clear'] ) ) {
-			$out['api_key'] = $current['api_key'];
+		// API key is NOT accepted from the form anymore (paid SaaS).
+		// Preserve any legacy key in DB only for migration; customers cannot set it.
+		$out['api_key'] = ! empty( $current['api_key'] ) ? $current['api_key'] : '';
+		if ( ! empty( $input['purge_legacy_api_key'] ) ) {
+			$out['api_key'] = '';
 		}
 
 		$out['system_prompt']  = isset( $input['system_prompt'] ) ? sanitize_textarea_field( $input['system_prompt'] ) : $defaults['system_prompt'];
@@ -124,11 +126,15 @@ class F2F_AI_Chatbot_Admin {
 		$out['show_teaser']    = empty( $input['show_teaser'] ) ? '0' : '1';
 		$out['auto_reindex']   = empty( $input['auto_reindex'] ) ? '0' : '1';
 		$out['avatar_id']      = isset( $input['avatar_id'] ) ? absint( $input['avatar_id'] ) : 0;
-		$out['bottom_margin'] = isset( $input['bottom_margin'] ) ? max( 0, min( 40, (float) $input['bottom_margin'] ) ) : (float) $defaults['bottom_margin'];
-		$out['side_margin']   = isset( $input['side_margin'] ) ? max( 0, min( 20, (float) $input['side_margin'] ) ) : (float) $defaults['side_margin'];
-		$out['rate_limit']    = isset( $input['rate_limit'] ) ? max( 1, min( 200, absint( $input['rate_limit'] ) ) ) : (int) $defaults['rate_limit'];
-		$out['max_tokens']    = isset( $input['max_tokens'] ) ? max( 50, min( 4000, absint( $input['max_tokens'] ) ) ) : (int) $defaults['max_tokens'];
-		$out['temperature']   = isset( $input['temperature'] ) ? max( 0, min( 2, (float) $input['temperature'] ) ) : (float) $defaults['temperature'];
+		$out['bottom_margin']  = isset( $input['bottom_margin'] ) ? max( 0, min( 40, (float) $input['bottom_margin'] ) ) : (float) $defaults['bottom_margin'];
+		$out['side_margin']    = isset( $input['side_margin'] ) ? max( 0, min( 20, (float) $input['side_margin'] ) ) : (float) $defaults['side_margin'];
+		// Token/model limits are F2F-controlled defaults — not customer inputs.
+		$out['rate_limit']  = (int) $defaults['rate_limit'];
+		$out['max_tokens']  = (int) $defaults['max_tokens'];
+		$out['temperature'] = (float) $defaults['temperature'];
+		$out['model']       = $defaults['model'];
+
+		delete_transient( 'f2f_ai_license_status' );
 
 		$color = isset( $input['primary_color'] ) ? sanitize_hex_color( $input['primary_color'] ) : '';
 		$out['primary_color'] = $color ? $color : $defaults['primary_color'];
@@ -226,16 +232,11 @@ class F2F_AI_Chatbot_Admin {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
-		$s      = f2f_ai_chatbot_get_settings();
+				$s      = f2f_ai_chatbot_get_settings();
 		$opt    = self::OPTION;
-		$models = array(
-			'gpt-4o-mini'   => 'GPT-4o Mini',
-			'gpt-4o'        => 'GPT-4o',
-			'gpt-4.1-mini'  => 'GPT-4.1 Mini',
-			'gpt-4.1'       => 'GPT-4.1',
-			'gpt-3.5-turbo' => 'GPT-3.5 Turbo',
-		);
-		$icons = array(
+		$avatar = f2f_ai_chatbot_avatar_url( $s );
+		$lic    = class_exists( 'F2F_AI_Chatbot_Gateway' ) ? F2F_AI_Chatbot_Gateway::license_status() : array();
+		$icons  = array(
 			'layout'  => 'Layout (web)',
 			'sparkle' => 'Sparkle',
 			'globe'   => 'Globe',
@@ -245,11 +246,10 @@ class F2F_AI_Chatbot_Admin {
 			'chat'    => 'Chat',
 			'star'    => 'Star',
 		);
-		$avatar = f2f_ai_chatbot_avatar_url( $s );
 		?>
 		<div class="wrap f2f-ai-admin">
-			<h1><?php echo esc_html__( 'F2F AI Chatbot — AI Proje Ajanı', 'f2f-ai-chatbot' ); ?></h1>
-			<p class="description"><?php echo esc_html__( 'Her müşteri sitesinde jargon ve hizmet kutularını o sektöre göre doldurun. Chatbot yayınlanmış sayfa/yazıları tarayarak yalnızca o siteye göre konuşur.', 'f2f-ai-chatbot' ); ?></p>
+			<h1><?php echo esc_html__( 'F2F AI Chatbot', 'f2f-ai-chatbot' ); ?></h1>
+			<p class="description"><?php echo esc_html__( 'Müşteri yalnızca marka, hizmet kutuları ve lisans anahtarını yönetir. OpenAI anahtarı / token / model F2F platformunda kalır — kontör bitince sohbet durur.', 'f2f-ai-chatbot' ); ?></p>
 
 			<form method="post" action="options.php" class="f2f-ai-admin__form">
 				<?php settings_fields( 'f2f_ai_chatbot_group' ); ?>
@@ -459,46 +459,50 @@ class F2F_AI_Chatbot_Admin {
 					</tr>
 				</table>
 
-				<h2><?php echo esc_html__( 'OpenAI', 'f2f-ai-chatbot' ); ?></h2>
+				<h2><?php echo esc_html__( 'F2F Lisans & Kontör', 'f2f-ai-chatbot' ); ?></h2>
 				<table class="form-table" role="presentation">
 					<tr>
-						<th><label for="f2f_api_key"><?php echo esc_html__( 'API Anahtarı', 'f2f-ai-chatbot' ); ?></label></th>
+						<th><label for="f2f_license_key"><?php echo esc_html__( 'Lisans anahtarı', 'f2f-ai-chatbot' ); ?></label></th>
 						<td>
-							<input type="password" class="regular-text" id="f2f_api_key" name="<?php echo esc_attr( $opt ); ?>[api_key]" value="" placeholder="<?php echo esc_attr( $s['api_key'] ? '••••••••••••••••' : 'sk-...' ); ?>" autocomplete="off" />
+							<input type="password" class="regular-text" id="f2f_license_key" name="<?php echo esc_attr( $opt ); ?>[license_key]" value="<?php echo esc_attr( (string) $s['license_key'] ); ?>" autocomplete="off" placeholder="f2f_lic_••••" />
+							<p class="description">
+								<?php echo esc_html__( 'platform.f2fbilisim.com panelinden alınır. OpenAI API anahtarı bu ekranda yoktur ve müşteri tarafından girilemez.', 'f2f-ai-chatbot' ); ?>
+								<a href="https://platform.f2fbilisim.com" target="_blank" rel="noopener noreferrer"><?php echo esc_html__( 'Kontör yükle →', 'f2f-ai-chatbot' ); ?></a>
+							</p>
+						</td>
+					</tr>
+					<tr>
+						<th><?php echo esc_html__( 'Durum', 'f2f-ai-chatbot' ); ?></th>
+						<td>
+							<?php
+							$status  = isset( $lic['status'] ) ? (string) $lic['status'] : 'missing';
+							$credits = array_key_exists( 'credits', $lic ) ? $lic['credits'] : null;
+							$msg     = isset( $lic['message'] ) ? (string) $lic['message'] : '';
+							?>
+							<p style="margin:0 0 6px;">
+								<strong><?php echo esc_html( strtoupper( $status ) ); ?></strong>
+								<?php if ( null !== $credits ) : ?>
+									— <?php echo esc_html( sprintf( /* translators: %d credits */ __( 'Kalan kontör: %d', 'f2f-ai-chatbot' ), (int) $credits ) ); ?>
+								<?php endif; ?>
+							</p>
+							<p class="description" style="margin:0;"><?php echo esc_html( $msg ); ?></p>
 							<?php if ( ! empty( $s['api_key'] ) ) : ?>
-								<p class="description"><?php echo esc_html__( 'Anahtar kayıtlı. Değiştirmek için yeni yazın.', 'f2f-ai-chatbot' ); ?></p>
-								<label><input type="checkbox" name="<?php echo esc_attr( $opt ); ?>[api_key_clear]" value="1" /> <?php echo esc_html__( 'Anahtarı sil', 'f2f-ai-chatbot' ); ?></label>
+								<p class="description" style="color:#b45309;">
+									<?php echo esc_html__( 'Eski sürümden kalma OpenAI anahtarı veritabanında duruyor (panelde gösterilmez). Lisansa geçtikten sonra temizleyebilirsiniz.', 'f2f-ai-chatbot' ); ?>
+								</p>
+								<label>
+									<input type="checkbox" name="<?php echo esc_attr( $opt ); ?>[purge_legacy_api_key]" value="1" />
+									<?php echo esc_html__( 'Eski API anahtarını sil', 'f2f-ai-chatbot' ); ?>
+								</label>
 							<?php endif; ?>
 						</td>
 					</tr>
 					<tr>
-						<th><label for="f2f_model"><?php echo esc_html__( 'Model', 'f2f-ai-chatbot' ); ?></label></th>
+						<th><label for="f2f_system_prompt"><?php echo esc_html__( 'Asistan talimatı (sektör)', 'f2f-ai-chatbot' ); ?></label></th>
 						<td>
-							<select id="f2f_model" name="<?php echo esc_attr( $opt ); ?>[model]">
-								<?php foreach ( $models as $value => $label ) : ?>
-									<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $s['model'], $value ); ?>><?php echo esc_html( $label ); ?></option>
-								<?php endforeach; ?>
-							</select>
+							<?php $this->field( 'system_prompt', $s, 'textarea', array( 'rows' => 5, 'class' => 'large-text' ) ); ?>
+							<p class="description"><?php echo esc_html__( 'Değişkenler: {site_name} {site_description} {business_notes} {services}. Model / token F2F tarafından yönetilir.', 'f2f-ai-chatbot' ); ?></p>
 						</td>
-					</tr>
-					<tr>
-						<th><label for="f2f_system_prompt"><?php echo esc_html__( 'Sistem promptu', 'f2f-ai-chatbot' ); ?></label></th>
-						<td>
-							<?php $this->field( 'system_prompt', $s, 'textarea', array( 'rows' => 6, 'class' => 'large-text' ) ); ?>
-							<p class="description"><?php echo esc_html__( 'Değişkenler: {site_name} {site_description} {business_notes} {services} — site tarama özeti otomatik eklenir.', 'f2f-ai-chatbot' ); ?></p>
-						</td>
-					</tr>
-					<tr>
-						<th><label for="f2f_rate_limit"><?php echo esc_html__( 'Saatlik istek limiti', 'f2f-ai-chatbot' ); ?></label></th>
-						<td><?php $this->field( 'rate_limit', $s, 'number', array( 'extra' => 'min="1" max="200"' ) ); ?></td>
-					</tr>
-					<tr>
-						<th><label for="f2f_max_tokens"><?php echo esc_html__( 'Max tokens', 'f2f-ai-chatbot' ); ?></label></th>
-						<td><?php $this->field( 'max_tokens', $s, 'number', array( 'extra' => 'min="50" max="4000"' ) ); ?></td>
-					</tr>
-					<tr>
-						<th><label for="f2f_temperature"><?php echo esc_html__( 'Temperature', 'f2f-ai-chatbot' ); ?></label></th>
-						<td><?php $this->field( 'temperature', $s, 'number', array( 'extra' => 'step="0.1" min="0" max="2"' ) ); ?></td>
 					</tr>
 				</table>
 

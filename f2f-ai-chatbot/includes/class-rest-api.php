@@ -224,9 +224,7 @@ class F2F_AI_Chatbot_REST_API {
 			'content' => $message,
 		);
 
-		$result = F2F_AI_Chatbot_OpenAI::chat(
-			(string) $settings['api_key'],
-			(string) $settings['model'],
+		$result = F2F_AI_Chatbot_Gateway::chat(
 			$messages,
 			array(
 				'max_tokens'  => (int) $settings['max_tokens'],

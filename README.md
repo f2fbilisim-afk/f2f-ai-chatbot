@@ -1,40 +1,40 @@
 # F2F AI Chatbot
 
-WordPress müşteri siteleri için sektöre özel AI chatbot.
+WordPress müşteri siteleri için **lisanslı** AI chatbot.
 
-Her firmada jargon **panelden** ayarlanır. Eklenti yayındaki sayfa/yazıları (ve varsa WooCommerce ürünlerini) tarar; OpenAI yanıtlarını **yalnızca o site içeriğine** dayandırır.
+OpenAI anahtarı müşteri panelinde **yoktur**. Sohbet `platform.f2fbilisim.com` üzerinden gider; kontör F2F’te düşülür.
 
-## Neden önemli?
+Detaylı satış modeli: [PRICING.md](./PRICING.md)
 
-Makina firmasına “domain / hosting” demesin diye: aktivasyonda veya **Siteyi şimdi tara** ile bilgi bankası oluşur. Sohbette ilgili sayfalar seçilir ve sistem promptuna eklenir.
+## Müşteri ne ayarlar?
 
-## Akış
+- Lisans anahtarı  
+- Profil, renk, konum, 4 hizmet kutusu  
+- Sektör notları + site tarama  
+- WhatsApp  
 
-1. Keşif (özelleştirilebilir 4 hizmet + öne çıkan)  
-2. Lead formu (Ad, Soyad, Telefon, E-posta)  
-3. OpenAI sohbeti (site bilgisi + işletme notları)  
-4. **Canlı Görüşmeye Başla** → WhatsApp  
+## Müşteri ne ayarlayamaz?
 
-## WordPress kurulumu
+- OpenAI API key  
+- Model / temperature / max tokens  
 
-1. `f2f-ai-chatbot/` → `wp-content/plugins/`  
-2. Etkinleştir (ilk taramayı otomatik dener)  
-3. **Ayarlar → F2F AI Chatbot**  
-   - Hizmet kutularını müşteri sektörüne göre yazın  
-   - **İşletme / sektör notları** doldurun  
-   - **Siteyi şimdi tara**  
-   - OpenAI API key + WhatsApp numarası  
+## Kurulum
 
-## Demo (makina firması örneği)
+1. `f2f-ai-chatbot.zip` yükle → etkinleştir  
+2. **AI Chat Bot → Ayarlar** → lisans anahtarı  
+3. Hizmet kutularını sektöre göre doldur → **Siteyi tara**  
 
-```bash
-cd demo
-npm start
-# http://127.0.0.1:43145
+F2F geliştirme (master key):
+
+```php
+// wp-config.php
+define('F2F_AI_MASTER_OPENAI_KEY', 'sk-...');
 ```
 
-Demo site: **Anadolu Makina** (CNC torna/freze). Hosting sorunca reddeder.
+## Demo
 
-## Lisans
-
-GPL-2.0-or-later
+```bash
+cd demo && npm start
+# http://127.0.0.1:43145
+# Zip: http://127.0.0.1:43145/download/f2f-ai-chatbot.zip
+```

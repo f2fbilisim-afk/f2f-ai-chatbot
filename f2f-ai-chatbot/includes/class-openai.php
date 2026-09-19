@@ -35,7 +35,7 @@ class F2F_AI_Chatbot_OpenAI {
 		if ( '' === $api_key ) {
 			return array(
 				'ok'    => false,
-				'error' => __( 'OpenAI API anahtarı tanımlı değil. Lütfen eklenti ayarlarından ekleyin.', 'f2f-ai-chatbot' ),
+				'error' => __( 'OpenAI API anahtarı tanımlı değil (F2F master / platform).', 'f2f-ai-chatbot' ),
 			);
 		}
 

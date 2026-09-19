@@ -284,9 +284,7 @@ class F2F_AI_Chatbot_Leads {
 			. "SADECE geçerli JSON döndür (başka metin yok):\n"
 			. '{"interest":"kısa ilgi başlığı (max 6 kelime)","need":"ihtiyaç / proje türü tek cümle","details":"öne çıkan detaylar 1-2 cümle"}';
 
-		$result = F2F_AI_Chatbot_OpenAI::chat(
-			(string) $settings['api_key'],
-			(string) $settings['model'],
+		$result = F2F_AI_Chatbot_Gateway::chat(
 			array(
 				array(
 					'role'    => 'system',

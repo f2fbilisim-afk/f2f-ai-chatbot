@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       F2F AI Chatbot
  * Plugin URI:        https://www.f2fbilisim.com
- * Description:       Sektöre özel AI chatbot — site içeriğini tarar, lead toplar, OpenAI ile yanıtlar. WhatsApp canlı görüşme.
- * Version:           1.3.1
+ * Description:       F2F lisanslı AI chatbot — müşteri site içeriğiyle konuşur, lead toplar. OpenAI anahtarı F2F platformunda kalır.
+ * Version:           1.4.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            F2F Bilişim
@@ -17,12 +17,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'F2F_AI_CHATBOT_VERSION', '1.3.1' );
+define( 'F2F_AI_CHATBOT_VERSION', '1.4.0' );
 define( 'F2F_AI_CHATBOT_FILE', __FILE__ );
 define( 'F2F_AI_CHATBOT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'F2F_AI_CHATBOT_URL', plugin_dir_url( __FILE__ ) );
 
 require_once F2F_AI_CHATBOT_PATH . 'includes/class-openai.php';
+require_once F2F_AI_CHATBOT_PATH . 'includes/class-gateway.php';
 require_once F2F_AI_CHATBOT_PATH . 'includes/class-leads.php';
 require_once F2F_AI_CHATBOT_PATH . 'includes/class-knowledge.php';
 require_once F2F_AI_CHATBOT_PATH . 'includes/class-admin.php';
@@ -53,6 +54,8 @@ add_action( 'plugins_loaded', 'f2f_ai_chatbot_init' );
 function f2f_ai_chatbot_default_settings() {
 	return array(
 		'enabled'              => '1',
+		'license_key'          => '',
+		// Kept internally / migrated; NEVER shown in customer UI.
 		'api_key'              => '',
 		'model'                => 'gpt-4o-mini',
 		'system_prompt'        => "Sen {site_name} web sitesinin yapay zeka asistanısın.\nSite açıklaması: {site_description}\nİşletme notları: {business_notes}\nHizmet/ürün etiketleri: {services}\n\nGörevin: ziyaretçinin sorularını YALNIZCA bu firmanın sunduğu ürün ve hizmetler çerçevesinde yanıtlamak. Sitede olmayan şeyleri önerme.",
