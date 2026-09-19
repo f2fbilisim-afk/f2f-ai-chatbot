@@ -169,36 +169,19 @@ class F2F_AI_Chatbot_REST_API {
 		}
 
 		$lead = $request->get_param( 'lead' );
-		$lead_context = '';
-		if ( is_array( $lead ) ) {
-			$parts = array();
-			if ( ! empty( $lead['first_name'] ) ) {
-				$parts[] = 'Ad: ' . sanitize_text_field( (string) $lead['first_name'] );
-			}
-			if ( ! empty( $lead['last_name'] ) ) {
-				$parts[] = 'Soyad: ' . sanitize_text_field( (string) $lead['last_name'] );
-			}
-			if ( ! empty( $lead['phone'] ) ) {
-				$parts[] = 'Telefon: ' . sanitize_text_field( (string) $lead['phone'] );
-			}
-			if ( ! empty( $lead['email'] ) ) {
-				$parts[] = 'E-posta: ' . sanitize_email( (string) $lead['email'] );
-			}
-			if ( ! empty( $lead['service'] ) ) {
-				$parts[] = 'Seçilen hizmet: ' . sanitize_text_field( (string) $lead['service'] );
-			}
-			if ( ! empty( $lead['intent'] ) ) {
-				$parts[] = 'İlk mesaj/niyet: ' . sanitize_text_field( (string) $lead['intent'] );
-			}
-			if ( $parts ) {
-				$lead_context = "Ziyaretçi bilgileri:\n" . implode( "\n", $parts );
-			}
+		if ( ! is_array( $lead ) ) {
+			$lead = array();
 		}
 
-		$system = (string) $settings['system_prompt'];
-		if ( $lead_context ) {
-			$system .= "\n\n" . $lead_context;
+		$query_for_kb = $message;
+		if ( ! empty( $lead['service'] ) ) {
+			$query_for_kb .= ' ' . sanitize_text_field( (string) $lead['service'] );
 		}
+		if ( ! empty( $lead['intent'] ) ) {
+			$query_for_kb .= ' ' . sanitize_text_field( (string) $lead['intent'] );
+		}
+
+		$system = F2F_AI_Chatbot_Knowledge::build_system_prompt( $settings, $query_for_kb, $lead );
 
 		$messages = array(
 			array(

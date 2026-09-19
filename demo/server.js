@@ -1,5 +1,5 @@
 /**
- * F2F AI Proje Ajanı — demo preview server
+ * Demo: Anadolu Makina — proves sector-specific knowledge (not F2F hosting jargon).
  */
 
 const http = require('http');
@@ -7,12 +7,10 @@ const fs = require('fs');
 const path = require('path');
 const { URL } = require('url');
 
-// Load demo/.env if present (never commit — root .gitignore covers .env)
 (function loadEnvFile() {
   const envPath = path.join(__dirname, '.env');
   if (!fs.existsSync(envPath)) return;
-  const lines = fs.readFileSync(envPath, 'utf8').split(/\r?\n/);
-  for (const line of lines) {
+  for (const line of fs.readFileSync(envPath, 'utf8').split(/\r?\n/)) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith('#')) continue;
     const eq = trimmed.indexOf('=');
@@ -35,53 +33,99 @@ const PLUGIN_ASSETS = path.join(__dirname, '..', 'f2f-ai-chatbot', 'assets');
 const OPENAI_KEY = process.env.OPENAI_API_KEY || '';
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 
-const SYSTEM_PROMPT =
-  process.env.F2F_SYSTEM_PROMPT ||
-  "Sen F2F Bilişim'in AI Proje Ajanısın. Ziyaretçi bir hizmet seçti ve iletişim bilgilerini verdi. Nazik, net ve kısa Türkçe yanıtlar ver. Web sitesi, hosting, domain, e-ticaret ve yazılım projelerini netleştirmeye yardımcı ol.";
+const SITE = {
+  name: 'Anadolu Makina',
+  description: 'CNC torna, freze ve endüstriyel makina imalatı — Konya.',
+  notes:
+    'CNC torna, CNC freze, yedek parça ve teknik servis sunuyoruz. Hosting, domain, web sitesi veya gıda ürünü satmıyoruz.',
+  url: 'https://ornek-anadolu-makina.local/',
+};
+
+const SITE_DOCS = [
+  {
+    id: 1,
+    type: 'page',
+    title: 'Hakkımızda',
+    url: '/hakkimizda',
+    content:
+      'Anadolu Makina 1998’den beri CNC torna ve freze tezgahları üretmektedir. Konya OSB’de 4200 m² üretim alanı. ISO 9001 kalite sistemi.',
+  },
+  {
+    id: 2,
+    type: 'page',
+    title: 'CNC Torna',
+    url: '/urunler/cnc-torna',
+    content:
+      'CNC torna tezgahlarımız Ø20–Ø450 mm çap aralığında hassas talaş kaldırma yapar. Otomotiv ve savunma yan sanayi için uygundur. Standart teslimat 6–10 hafta.',
+  },
+  {
+    id: 3,
+    type: 'page',
+    title: 'CNC Freze',
+    url: '/urunler/cnc-freze',
+    content:
+      '3 ve 5 eksen CNC freze merkezleri. Alüminyum, çelik ve titanyum işleme. Takım yolu optimizasyonu ve fikstür tasarımı hizmeti verilir.',
+  },
+  {
+    id: 4,
+    type: 'page',
+    title: 'Teknik Servis',
+    url: '/servis',
+    content:
+      'Yerinde kurulum, periyodik bakım ve yedek parça. 7/24 arıza hattı: +90 332 000 00 00. Garantili makinelerde ilk yıl ücretsiz bakım.',
+  },
+  {
+    id: 5,
+    type: 'page',
+    title: 'İletişim',
+    url: '/iletisim',
+    content:
+      'Adres: Konya OSB 12. Cadde No:45. E-posta: info@anadolumakina.example Tel: +90 332 000 00 00.',
+  },
+];
 
 const PUBLIC_CONFIG = {
   enabled: true,
-  botName: 'AI Proje Ajanı',
+  botName: 'Anadolu Makina Asistan',
   avatarUrl: '/plugin/img/avatar-default.svg',
   primaryColor: '#22C55E',
   position: 'right',
   bottomMargin: 4,
   sideMargin: 2,
   launcherLabel: 'AI',
-  teaserTitle: 'AI PROJE AJANI',
-  teaserMessage: 'Merhaba! Fikrinizi anlatın, birlikte netleştirelim.',
+  teaserTitle: 'ANADOLU MAKINA',
+  teaserMessage: 'Merhaba! CNC torna, freze veya servis hakkında yazın.',
   showTeaser: true,
-  discoverHeadline: 'Ne oluşturmak istiyorsunuz?',
+  discoverHeadline: 'Size nasıl yardımcı olabiliriz?',
   discoverSubtext:
-    'Ben F2F AI Proje Ajanı. Seçimden sonra kısa iletişim bilgisi alıp projenizi netleştirelim.',
-  inputPlaceholder: "AI Proje Ajanı'na yazın...",
+    'Makina veya servis seçin, kısa iletişim bilgisinden sonra asistan yanıtlasın.',
+  inputPlaceholder: 'Mesajınızı yazın...',
   dividerText: 'VEYA KEŞFET',
   featured: {
     id: 'featured',
-    label: 'Web sitesi oluştur',
-    subtitle: 'En popüler · ~2 dk',
-    icon: 'layout',
+    label: 'CNC Torna teklifi',
+    subtitle: 'En çok sorulan',
+    icon: 'star',
   },
   services: [
-    { id: 'service_1', label: 'Hosting al', icon: 'sparkle' },
-    { id: 'service_2', label: 'Domain bul', icon: 'globe' },
-    { id: 'service_3', label: 'E-ticaret', icon: 'bag' },
-    { id: 'service_4', label: 'Yazılım', icon: 'code' },
+    { id: 'service_1', label: 'CNC Freze', icon: 'sparkle' },
+    { id: 'service_2', label: 'Teknik Servis', icon: 'globe' },
+    { id: 'service_3', label: 'Yedek Parça', icon: 'bag' },
+    { id: 'service_4', label: 'Kurulum', icon: 'code' },
   ],
   lead: {
     headline: 'Sizi tanıyalım',
     subtext:
-      'Satış ekibimizin dönüş yapabilmesi için iletişim bilgilerinizi alın. Ardından ajanla devam edeceğiz.',
+      'Satış ekibimizin dönüş yapabilmesi için iletişim bilgilerinizi alın. Ardından asistanla devam edeceğiz.',
     btn: 'Devam et',
     cancel: 'Vazgeç',
   },
   whatsapp: {
-    phone: '905499009310',
-    message: 'Merhaba, AI Proje Ajanı üzerinden yazıyorum.',
+    phone: '903320000000',
+    message: 'Merhaba, Anadolu Makina sitesinden yazıyorum.',
     label: 'Canlı Görüşmeye Başla',
   },
-  chatWelcome:
-    'Merhaba {ad}! {hizmet} konusunda yardımcı olayım. Projenizi kısaca anlatır mısınız?',
+  chatWelcome: 'Merhaba {ad}! {hizmet} hakkında yardımcı olayım. Ne öğrenmek istersiniz?',
   i18n: {
     firstName: 'Ad',
     lastName: 'Soyad',
@@ -131,29 +175,79 @@ function readBody(req) {
   });
 }
 
-function mockReply(message, lead) {
-  const name = lead && lead.first_name ? lead.first_name : '';
-  const svc = lead && lead.service ? lead.service : '';
-  const m = String(message || '').toLowerCase();
-  if (/hosting|sunucu/.test(m) || /hosting/i.test(svc)) {
-    return `${name ? name + ', ' : ''}Hosting paketlerimiz SSD disk, yedekleme ve e-posta hesapları içerir. Trafik ve depolama ihtiyacınızı söylerseniz uygun paketi önereyim.`;
+function serveFile(res, filePath) {
+  fs.readFile(filePath, (err, data) => {
+    if (err) {
+      send(res, 404, 'Not found', { 'Content-Type': 'text/plain; charset=utf-8' });
+      return;
+    }
+    const ext = path.extname(filePath).toLowerCase();
+    send(res, 200, data, {
+      'Content-Type': MIME[ext] || 'application/octet-stream',
+      'Cache-Control': 'no-cache',
+    });
+  });
+}
+
+function searchDocs(query, limit = 5) {
+  const q = String(query || '').toLowerCase();
+  const tokens = q.split(/[\s\W]+/).filter((t) => t.length >= 3);
+  const scored = SITE_DOCS.map((doc) => {
+    const hay = (doc.title + ' ' + doc.content).toLowerCase();
+    let score = 0;
+    for (const t of tokens) if (hay.includes(t)) score += 2;
+    return { score, doc };
+  }).sort((a, b) => b.score - a.score);
+  const out = scored.filter((r) => r.score > 0).slice(0, limit).map((r) => r.doc);
+  if (out.length < 3) {
+    for (const d of SITE_DOCS) {
+      if (out.length >= limit) break;
+      if (!out.find((x) => x.id === d.id)) out.push(d);
+    }
   }
-  if (/domain|alan adı/.test(m) || /domain/i.test(svc)) {
-    return `${name ? name + ', ' : ''}Domain tescili ve DNS yönlendirmesini F2F üzerinden yapabiliyoruz. Aklınızdaki alan adını yazar mısınız?`;
+  return out;
+}
+
+function buildSystemPrompt(query, lead) {
+  const services = [
+    PUBLIC_CONFIG.featured.label,
+    ...PUBLIC_CONFIG.services.map((s) => s.label),
+  ].join(', ');
+  const docs = searchDocs(
+    [query, lead && lead.service, lead && lead.intent].filter(Boolean).join(' ')
+  );
+  let kb = `SİTE KİMLİĞİ\nAd: ${SITE.name}\nURL: ${SITE.url}\nAçıklama: ${SITE.description}\n\nİLGİLİ SİTE İÇERİKLERİ:\n`;
+  for (const d of docs) {
+    kb += `\n### ${d.title}\nURL: ${d.url}\n${d.content}\n`;
   }
-  if (/e-?ticaret|woocommerce|mağaza/.test(m) || /e-ticaret/i.test(svc)) {
-    return `${name ? name + ', ' : ''}E-ticaret kurulumunda ödeme, kargo ve stok entegrasyonlarını birlikte planlarız. Kaç ürünle başlayacaksınız?`;
+  let leadBlock = '';
+  if (lead && typeof lead === 'object') {
+    leadBlock =
+      '\nZiyaretçi:\n' +
+      [
+        lead.first_name && 'Ad: ' + lead.first_name,
+        lead.last_name && 'Soyad: ' + lead.last_name,
+        lead.phone && 'Telefon: ' + lead.phone,
+        lead.email && 'E-posta: ' + lead.email,
+        lead.service && 'Seçilen hizmet: ' + lead.service,
+        lead.intent && 'İlk niyet: ' + lead.intent,
+      ]
+        .filter(Boolean)
+        .join('\n');
   }
-  if (/yazılım|özel|crm|erp/.test(m) || /yazılım/i.test(svc)) {
-    return `${name ? name + ', ' : ''}Özel yazılım için kapsamı netleştirelim: web paneli, mobil uygulama veya otomasyon mu düşünüyorsunuz?`;
-  }
-  if (/web|site|oluştur/.test(m) || /web sitesi/i.test(svc)) {
-    return `${name ? name + ', ' : ''}Web sitesi için kurumsal, landing veya blog hangisi daha yakın? Ayrıca kaç sayfa / dil ihtiyacınız var?`;
-  }
-  if (!OPENAI_KEY) {
-    return `${name ? 'Merhaba ' + name + '! ' : ''}Demo modundayım. "${message}" için canlı OpenAI yanıtı almak üzere OPENAI_API_KEY tanımlayın. Canlı görüşme için alttaki WhatsApp butonunu kullanabilirsiniz.`;
-  }
-  return 'Nasıl yardımcı olabilirim?';
+  return (
+    `Sen ${SITE.name} web sitesinin yapay zeka asistanısın.\n` +
+    `Site açıklaması: ${SITE.description}\n` +
+    `İşletme notları: ${SITE.notes}\n` +
+    `Hizmet/ürün etiketleri: ${services}\n\n` +
+    `ZORUNLU KURALLAR:\n` +
+    `- Yalnızca ${SITE.name} içeriğine göre yanıt ver.\n` +
+    `- Hosting, domain, web tasarımı, e-ticaret yazılımı gibi bu sitede olmayan hizmetleri ASLA önerme.\n` +
+    `- Bilmiyorsan söyle ve canlı görüşmeye yönlendir.\n` +
+    `- Kısa, net Türkçe.\n\n` +
+    `--- SİTE BİLGİ BANKASI ---\n${kb}\n--- BİLGİ BANKASI SONU ---` +
+    leadBlock
+  );
 }
 
 async function openaiChat(messages) {
@@ -167,7 +261,7 @@ async function openaiChat(messages) {
       model: MODEL,
       messages,
       max_tokens: 500,
-      temperature: 0.7,
+      temperature: 0.4,
     }),
   });
   const data = await res.json().catch(() => ({}));
@@ -179,18 +273,22 @@ async function openaiChat(messages) {
   return String(content).trim();
 }
 
-function serveFile(res, filePath) {
-  fs.readFile(filePath, (err, data) => {
-    if (err) {
-      send(res, 404, 'Not found', { 'Content-Type': 'text/plain; charset=utf-8' });
-      return;
-    }
-    const ext = path.extname(filePath).toLowerCase();
-    send(res, 200, data, {
-      'Content-Type': MIME[ext] || 'application/octet-stream',
-      'Cache-Control': 'no-cache',
-    });
-  });
+function mockReply(message, lead) {
+  const m = String(message || '').toLowerCase();
+  const name = lead && lead.first_name ? lead.first_name + ', ' : '';
+  if (/hosting|domain|wordpress|web site|e-?ticaret/.test(m)) {
+    return `${name}Biz Anadolu Makina olarak CNC torna/freze üretiyoruz; hosting veya web hizmeti sunmuyoruz. Makina veya teknik servis hakkında sorabilirsiniz.`;
+  }
+  if (/torna|cnc/.test(m)) {
+    return `${name}CNC torna tezgahlarımız Ø20–Ø450 mm aralığında. Standart teslimat 6–10 hafta. Hangi çap / malzeme için bakıyorsunuz?`;
+  }
+  if (/freze/.test(m)) {
+    return `${name}3 ve 5 eksen CNC freze merkezlerimiz var. Alüminyum, çelik, titanyum işleriz. Parça tipinizi paylaşır mısınız?`;
+  }
+  if (/servis|bakım|arıza|yedek/.test(m)) {
+    return `${name}Teknik servis ve yedek parça desteğimiz var. Arıza hattı: +90 332 000 00 00. Makina modelinizi yazarsanız yönlendireyim.`;
+  }
+  return `${name}Anadolu Makina asistanıyım — CNC torna, freze, kurulum ve servis konularında yardımcı olurum.`;
 }
 
 const leads = [];
@@ -219,6 +317,7 @@ const server = http.createServer(async (req, res) => {
         ...PUBLIC_CONFIG,
         mode: OPENAI_KEY ? 'openai' : 'demo',
         hasApiKey: Boolean(OPENAI_KEY),
+        siteName: SITE.name,
       });
       return;
     }
@@ -256,15 +355,12 @@ const server = http.createServer(async (req, res) => {
         email,
         service: String(body.service || ''),
         intent: String(body.intent || ''),
-        at: new Date().toISOString(),
       };
       leads.push(lead);
-      console.log('[lead]', JSON.stringify(lead));
-      let welcome = PUBLIC_CONFIG.chatWelcome;
-      welcome = welcome
+      let welcome = PUBLIC_CONFIG.chatWelcome
         .replace(/\{ad\}/g, first)
         .replace(/\{soyad\}/g, last)
-        .replace(/\{hizmet\}/g, lead.service || 'proje');
+        .replace(/\{hizmet\}/g, lead.service || 'ürünlerimiz');
       sendJson(res, 200, { ok: true, leadId: lead.id, welcome });
       return;
     }
@@ -284,21 +380,7 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       const lead = body.lead && typeof body.lead === 'object' ? body.lead : null;
-      let system = SYSTEM_PROMPT;
-      if (lead) {
-        system +=
-          '\n\nZiyaretçi bilgileri:\n' +
-          [
-            lead.first_name && 'Ad: ' + lead.first_name,
-            lead.last_name && 'Soyad: ' + lead.last_name,
-            lead.phone && 'Telefon: ' + lead.phone,
-            lead.email && 'E-posta: ' + lead.email,
-            lead.service && 'Seçilen hizmet: ' + lead.service,
-            lead.intent && 'İlk mesaj/niyet: ' + lead.intent,
-          ]
-            .filter(Boolean)
-            .join('\n');
-      }
+      const system = buildSystemPrompt(message, lead);
       const messages = [{ role: 'system', content: system }];
       const history = Array.isArray(body.history) ? body.history.slice(-12) : [];
       for (const turn of history) {
@@ -313,7 +395,7 @@ const server = http.createServer(async (req, res) => {
         if (OPENAI_KEY) {
           reply = await openaiChat(messages);
         } else {
-          await new Promise((r) => setTimeout(r, 500));
+          await new Promise((r) => setTimeout(r, 400));
           reply = mockReply(message, lead);
         }
         sendJson(res, 200, { reply, mode: OPENAI_KEY ? 'openai' : 'demo' });
@@ -330,6 +412,6 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`F2F AI Proje Ajanı demo → http://127.0.0.1:${PORT}`);
-  console.log(OPENAI_KEY ? `OpenAI (${MODEL})` : 'Demo mode — set OPENAI_API_KEY for live replies');
+  console.log(`Anadolu Makina AI demo → http://127.0.0.1:${PORT}`);
+  console.log(OPENAI_KEY ? `OpenAI (${MODEL})` : 'Demo mode');
 });

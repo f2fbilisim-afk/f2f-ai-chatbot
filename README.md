@@ -1,29 +1,31 @@
-# F2F AI Chatbot — AI Proje Ajanı
+# F2F AI Chatbot
 
-WordPress floating chatbot: **keşif ekranı → lead formu → OpenAI sohbeti**, WhatsApp canlı görüşme butonu.
+WordPress müşteri siteleri için sektöre özel AI chatbot.
 
-Ekranlar, gönderdiğiniz mockup’larla hizalıdır. Profil fotoğrafı, başlık, öne çıkan kutu ve 4 hizmet kutusu eklenti panelinden düzenlenir.
+Her firmada jargon **panelden** ayarlanır. Eklenti yayındaki sayfa/yazıları (ve varsa WooCommerce ürünlerini) tarar; OpenAI yanıtlarını **yalnızca o site içeriğine** dayandırır.
+
+## Neden önemli?
+
+Makina firmasına “domain / hosting” demesin diye: aktivasyonda veya **Siteyi şimdi tara** ile bilgi bankası oluşur. Sohbette ilgili sayfalar seçilir ve sistem promptuna eklenir.
 
 ## Akış
 
-1. Ziyaretçi widget’ı açar → hizmet seçer **veya** yazıp Enter’a basar  
-2. **Sizi tanıyalım** formu (Ad, Soyad, Telefon, E-posta)  
-3. Formdan sonra OpenAI sohbeti başlar  
-4. Sohbet sırasında gönder çubuğunun altında **Canlı Görüşmeye Başla** → paneldeki WhatsApp numarasına yönlendirir  
+1. Keşif (özelleştirilebilir 4 hizmet + öne çıkan)  
+2. Lead formu (Ad, Soyad, Telefon, E-posta)  
+3. OpenAI sohbeti (site bilgisi + işletme notları)  
+4. **Canlı Görüşmeye Başla** → WhatsApp  
 
 ## WordPress kurulumu
 
-1. `f2f-ai-chatbot/` klasörünü `wp-content/plugins/` altına kopyalayın (veya zip yükleyin)  
-2. Etkinleştirin → **Ayarlar → F2F AI Chatbot**  
-3. Ayarlayın:
-   - Profil fotoğrafı + chatbot başlığı  
-   - Keşif metinleri, öne çıkan kutu, 4 hizmet  
-   - Lead formu metinleri  
-   - WhatsApp telefon (örn. `905499009310`)  
-   - OpenAI API anahtarı + sistem promptu  
-4. Lead’ler **Ayarlar → AI Leadler** altında listelenir  
+1. `f2f-ai-chatbot/` → `wp-content/plugins/`  
+2. Etkinleştir (ilk taramayı otomatik dener)  
+3. **Ayarlar → F2F AI Chatbot**  
+   - Hizmet kutularını müşteri sektörüne göre yazın  
+   - **İşletme / sektör notları** doldurun  
+   - **Siteyi şimdi tara**  
+   - OpenAI API key + WhatsApp numarası  
 
-## Demo (bu ortam)
+## Demo (makina firması örneği)
 
 ```bash
 cd demo
@@ -31,20 +33,7 @@ npm start
 # http://127.0.0.1:43145
 ```
 
-Canlı OpenAI:
-
-```bash
-export OPENAI_API_KEY=sk-...
-npm start
-```
-
-## REST
-
-| Method | Path | Açıklama |
-|--------|------|----------|
-| GET | `/wp-json/f2f-ai-chatbot/v1/config` | Public config |
-| POST | `/wp-json/f2f-ai-chatbot/v1/lead` | Lead kaydı |
-| POST | `/wp-json/f2f-ai-chatbot/v1/chat` | OpenAI sohbet |
+Demo site: **Anadolu Makina** (CNC torna/freze). Hosting sorunca reddeder.
 
 ## Lisans
 

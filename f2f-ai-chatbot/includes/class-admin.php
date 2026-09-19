@@ -118,10 +118,12 @@ class F2F_AI_Chatbot_Admin {
 			$out['api_key'] = $current['api_key'];
 		}
 
-		$out['system_prompt'] = isset( $input['system_prompt'] ) ? sanitize_textarea_field( $input['system_prompt'] ) : $defaults['system_prompt'];
-		$out['position']      = ( isset( $input['position'] ) && 'left' === $input['position'] ) ? 'left' : 'right';
-		$out['show_teaser']   = empty( $input['show_teaser'] ) ? '0' : '1';
-		$out['avatar_id']     = isset( $input['avatar_id'] ) ? absint( $input['avatar_id'] ) : 0;
+		$out['system_prompt']  = isset( $input['system_prompt'] ) ? sanitize_textarea_field( $input['system_prompt'] ) : $defaults['system_prompt'];
+		$out['business_notes'] = isset( $input['business_notes'] ) ? sanitize_textarea_field( $input['business_notes'] ) : '';
+		$out['position']       = ( isset( $input['position'] ) && 'left' === $input['position'] ) ? 'left' : 'right';
+		$out['show_teaser']    = empty( $input['show_teaser'] ) ? '0' : '1';
+		$out['auto_reindex']   = empty( $input['auto_reindex'] ) ? '0' : '1';
+		$out['avatar_id']      = isset( $input['avatar_id'] ) ? absint( $input['avatar_id'] ) : 0;
 		$out['bottom_margin'] = isset( $input['bottom_margin'] ) ? max( 0, min( 40, (float) $input['bottom_margin'] ) ) : (float) $defaults['bottom_margin'];
 		$out['side_margin']   = isset( $input['side_margin'] ) ? max( 0, min( 20, (float) $input['side_margin'] ) ) : (float) $defaults['side_margin'];
 		$out['rate_limit']    = isset( $input['rate_limit'] ) ? max( 1, min( 200, absint( $input['rate_limit'] ) ) ) : (int) $defaults['rate_limit'];
@@ -168,6 +170,19 @@ class F2F_AI_Chatbot_Admin {
 			array( 'jquery', 'wp-color-picker' ),
 			F2F_AI_CHATBOT_VERSION,
 			true
+		);
+		wp_localize_script(
+			'f2f-ai-chatbot-admin',
+			'f2fAiAdmin',
+			array(
+				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+				'nonce'   => wp_create_nonce( 'f2f_ai_reindex' ),
+				'i18n'    => array(
+					'scanning' => __( 'Taranıyor…', 'f2f-ai-chatbot' ),
+					'done'     => __( 'Tarama tamamlandı.', 'f2f-ai-chatbot' ),
+					'fail'     => __( 'Tarama başarısız.', 'f2f-ai-chatbot' ),
+				),
+			)
 		);
 	}
 
@@ -234,7 +249,7 @@ class F2F_AI_Chatbot_Admin {
 		?>
 		<div class="wrap f2f-ai-admin">
 			<h1><?php echo esc_html__( 'F2F AI Chatbot — AI Proje Ajanı', 'f2f-ai-chatbot' ); ?></h1>
-			<p class="description"><?php echo esc_html__( 'Keşif ekranı → iletişim formu → OpenAI sohbeti. Profil, başlık ve 4 hizmet kutusu buradan yönetilir.', 'f2f-ai-chatbot' ); ?></p>
+			<p class="description"><?php echo esc_html__( 'Her müşteri sitesinde jargon ve hizmet kutularını o sektöre göre doldurun. Chatbot yayınlanmış sayfa/yazıları tarayarak yalnızca o siteye göre konuşur.', 'f2f-ai-chatbot' ); ?></p>
 
 			<form method="post" action="options.php" class="f2f-ai-admin__form">
 				<?php settings_fields( 'f2f_ai_chatbot_group' ); ?>
@@ -403,6 +418,47 @@ class F2F_AI_Chatbot_Admin {
 					</tr>
 				</table>
 
+				<?php
+				$kb = F2F_AI_Chatbot_Knowledge::get();
+				$kb_count = isset( $kb['count'] ) ? (int) $kb['count'] : 0;
+				$kb_updated = isset( $kb['updated'] ) ? $kb['updated'] : '';
+				?>
+				<h2><?php echo esc_html__( 'Site bilgisi (sektör / tarama)', 'f2f-ai-chatbot' ); ?></h2>
+				<table class="form-table" role="presentation">
+					<tr>
+						<th><label for="f2f_business_notes"><?php echo esc_html__( 'İşletme / sektör notları', 'f2f-ai-chatbot' ); ?></label></th>
+						<td>
+							<?php $this->field( 'business_notes', $s, 'textarea', array( 'rows' => 4, 'class' => 'large-text' ) ); ?>
+							<p class="description"><?php echo esc_html__( 'Örn: “CNC torna ve freze üretiyoruz. Gıda veya hosting satmıyoruz.” Bu metin her sohbete eklenir.', 'f2f-ai-chatbot' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th><?php echo esc_html__( 'Site içerik taraması', 'f2f-ai-chatbot' ); ?></th>
+						<td>
+							<p>
+								<?php
+								echo esc_html(
+									$kb_count
+										? sprintf(
+											/* translators: 1: doc count 2: datetime */
+											__( 'Son tarama: %1$d içerik — %2$s', 'f2f-ai-chatbot' ),
+											$kb_count,
+											$kb_updated
+										)
+										: __( 'Henüz tarama yok. Butona basınca yayınlanmış sayfa, yazı (ve WooCommerce ürünleri) indekslenir.', 'f2f-ai-chatbot' )
+								);
+								?>
+							</p>
+							<button type="button" class="button button-secondary" id="f2f_reindex_btn"><?php echo esc_html__( 'Siteyi şimdi tara', 'f2f-ai-chatbot' ); ?></button>
+							<span id="f2f_reindex_status" style="margin-left:8px;"></span>
+							<label style="display:block;margin-top:10px;">
+								<input type="checkbox" name="<?php echo esc_attr( $opt ); ?>[auto_reindex]" value="1" <?php checked( $s['auto_reindex'], '1' ); ?> />
+								<?php echo esc_html__( 'İçerik kaydedilince otomatik yeniden tara', 'f2f-ai-chatbot' ); ?>
+							</label>
+						</td>
+					</tr>
+				</table>
+
 				<h2><?php echo esc_html__( 'OpenAI', 'f2f-ai-chatbot' ); ?></h2>
 				<table class="form-table" role="presentation">
 					<tr>
@@ -427,7 +483,10 @@ class F2F_AI_Chatbot_Admin {
 					</tr>
 					<tr>
 						<th><label for="f2f_system_prompt"><?php echo esc_html__( 'Sistem promptu', 'f2f-ai-chatbot' ); ?></label></th>
-						<td><?php $this->field( 'system_prompt', $s, 'textarea', array( 'rows' => 6, 'class' => 'large-text' ) ); ?></td>
+						<td>
+							<?php $this->field( 'system_prompt', $s, 'textarea', array( 'rows' => 6, 'class' => 'large-text' ) ); ?>
+							<p class="description"><?php echo esc_html__( 'Değişkenler: {site_name} {site_description} {business_notes} {services} — site tarama özeti otomatik eklenir.', 'f2f-ai-chatbot' ); ?></p>
+						</td>
 					</tr>
 					<tr>
 						<th><label for="f2f_rate_limit"><?php echo esc_html__( 'Saatlik istek limiti', 'f2f-ai-chatbot' ); ?></label></th>
