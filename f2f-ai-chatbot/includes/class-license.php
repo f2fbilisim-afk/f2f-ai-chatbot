@@ -2,6 +2,9 @@
 /**
  * Local license pool — package quota + 1 year premium.
  *
+ * Activation is permanent per key hash: re-entering the same key never
+ * resets expires_at or messages_used (anti-abuse).
+ *
  * @package F2F_AI_Chatbot
  */
 
@@ -14,9 +17,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class F2F_AI_Chatbot_License {
 
-	const META_OPTION  = 'f2f_ai_license_meta';
-	const PREMIUM_DAYS = 365;
-	const KEY_PATTERN  = '/^F2F-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}$/';
+	const META_OPTION         = 'f2f_ai_license_meta';
+	const ACTIVATIONS_OPTION  = 'f2f_ai_license_activations';
+	const PREMIUM_DAYS        = 365;
+	const KEY_PATTERN         = '/^F2F-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}$/';
 
 	/**
 	 * Catalog (fallback labels; limits come from the pool entry).
@@ -127,23 +131,71 @@ class F2F_AI_Chatbot_License {
 	}
 
 	/**
+	 * Lifetime activation ledger keyed by license hash (never wiped on re-save).
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	public static function activations() {
+		$store = get_option( self::ACTIVATIONS_OPTION, array() );
+		return is_array( $store ) ? $store : array();
+	}
+
+	/**
+	 * @param string               $hash Key hash.
+	 * @param array<string, mixed> $meta Meta row.
+	 * @return void
+	 */
+	private static function persist_activation( $hash, $meta ) {
+		$hash = (string) $hash;
+		if ( '' === $hash || ! is_array( $meta ) ) {
+			return;
+		}
+		$store          = self::activations();
+		$store[ $hash ] = $meta;
+		update_option( self::ACTIVATIONS_OPTION, $store, false );
+		update_option( self::META_OPTION, $meta, false );
+	}
+
+	/**
+	 * Migrate legacy single meta into activations map (one-time).
+	 *
+	 * @return void
+	 */
+	private static function maybe_migrate_legacy_meta() {
+		$meta = get_option( self::META_OPTION, array() );
+		if ( ! is_array( $meta ) || empty( $meta['key_hash'] ) || empty( $meta['expires_at'] ) ) {
+			return;
+		}
+		$hash  = (string) $meta['key_hash'];
+		$store = self::activations();
+		if ( isset( $store[ $hash ] ) && is_array( $store[ $hash ] ) ) {
+			return;
+		}
+		$store[ $hash ] = $meta;
+		update_option( self::ACTIVATIONS_OPTION, $store, false );
+	}
+
+	/**
 	 * @return array<string, mixed>
 	 */
 	public static function meta() {
+		self::maybe_migrate_legacy_meta();
 		$meta = get_option( self::META_OPTION, array() );
 		return is_array( $meta ) ? $meta : array();
 	}
 
 	/**
-	 * Activate or refresh meta when a valid key is saved.
+	 * Activate or bind a key. Same key never resets clock or quota.
 	 *
 	 * @param string $key License key from settings.
 	 * @return array{ok:bool, status:string, message:string, expires_at?:int}
 	 */
 	public static function activate( $key ) {
+		self::maybe_migrate_legacy_meta();
 		$key = self::normalize( $key );
 
 		if ( '' === $key ) {
+			// Unbind current site key only — do NOT wipe activation history.
 			delete_option( self::META_OPTION );
 			return array(
 				'ok'      => false,
@@ -162,54 +214,81 @@ class F2F_AI_Chatbot_License {
 			);
 		}
 
-		$existing = self::meta();
-		$hash     = self::hash( $key );
-		$now      = time();
+		$hash  = self::hash( $key );
+		$now   = time();
+		$store = self::activations();
 
-		// Same key already activated and not expired — keep expiry + usage.
-		if ( ! empty( $existing['key_hash'] ) && $existing['key_hash'] === $hash && ! empty( $existing['expires_at'] ) ) {
-			$expires = (int) $existing['expires_at'];
-			if ( $expires > $now ) {
-				// Backfill plan fields if upgrading from older meta.
-				if ( empty( $existing['plan'] ) || empty( $existing['messages_limit'] ) ) {
-					$existing['plan']           = $pkg['plan'];
-					$existing['plan_label']     = $pkg['label'];
-					$existing['messages_limit'] = $pkg['messages'];
-					if ( ! isset( $existing['messages_used'] ) ) {
-						$existing['messages_used'] = 0;
-					}
-					update_option( self::META_OPTION, $existing, false );
-				}
+		// Already activated this key on this site — restore, never reset.
+		if ( ! empty( $store[ $hash ] ) && is_array( $store[ $hash ] ) ) {
+			$meta = $store[ $hash ];
+
+			// Keep plan labels/limits in sync with pool (quota used & dates stay).
+			$meta['key_hash']       = $hash;
+			$meta['key_masked']     = self::mask( $key );
+			$meta['plan']           = $pkg['plan'];
+			$meta['plan_label']     = $pkg['label'];
+			$meta['messages_limit'] = $pkg['messages'];
+			$meta['site_url']       = home_url( '/' );
+			if ( ! isset( $meta['messages_used'] ) ) {
+				$meta['messages_used'] = 0;
+			}
+			if ( empty( $meta['activated_at'] ) ) {
+				$meta['activated_at'] = ! empty( $meta['expires_at'] )
+					? (int) $meta['expires_at'] - ( self::PREMIUM_DAYS * DAY_IN_SECONDS )
+					: $now;
+			}
+			if ( empty( $meta['expires_at'] ) ) {
+				// Corrupt row: lock to past so it cannot be farmed into a fresh year.
+				$meta['expires_at']  = $now - DAY_IN_SECONDS;
+				$meta['activated_at'] = $now - ( self::PREMIUM_DAYS * DAY_IN_SECONDS );
+			}
+
+			self::persist_activation( $hash, $meta );
+			$expires = (int) $meta['expires_at'];
+
+			if ( $expires <= $now ) {
 				return array(
-					'ok'         => true,
-					'status'     => 'premium',
-					'message'    => __( 'Premium lisans aktif.', 'f2f-ai-chatbot' ),
+					'ok'         => false,
+					'status'     => 'expired',
+					'message'    => sprintf(
+						/* translators: %s: expiry date */
+						__( 'Bu lisans anahtarının süresi dolmuş (%s). Yenilemek için F2F Bilişim’den yeni anahtar alın — aynı anahtarı tekrar girmek süreyi uzatmaz.', 'f2f-ai-chatbot' ),
+						wp_date( get_option( 'date_format' ), $expires )
+					),
 					'expires_at' => $expires,
 				);
 			}
+
+			return array(
+				'ok'         => true,
+				'status'     => 'premium',
+				'message'    => __( 'Premium lisans aktif (ilk aktivasyon tarihi korundu).', 'f2f-ai-chatbot' ),
+				'expires_at' => $expires,
+			);
 		}
 
+		// First activation of this key on this WordPress site only.
 		$expires = $now + ( self::PREMIUM_DAYS * DAY_IN_SECONDS );
 		$meta    = array(
-			'key_hash'        => $hash,
-			'key_masked'      => self::mask( $key ),
-			'activated_at'    => $now,
-			'expires_at'      => $expires,
-			'premium_days'    => self::PREMIUM_DAYS,
-			'site_url'        => home_url( '/' ),
-			'plan'            => $pkg['plan'],
-			'plan_label'      => $pkg['label'],
-			'messages_limit'  => $pkg['messages'],
-			'messages_used'   => 0,
+			'key_hash'       => $hash,
+			'key_masked'     => self::mask( $key ),
+			'activated_at'   => $now,
+			'expires_at'     => $expires,
+			'premium_days'   => self::PREMIUM_DAYS,
+			'site_url'       => home_url( '/' ),
+			'plan'           => $pkg['plan'],
+			'plan_label'     => $pkg['label'],
+			'messages_limit' => $pkg['messages'],
+			'messages_used'  => 0,
 		);
-		update_option( self::META_OPTION, $meta, false );
+		self::persist_activation( $hash, $meta );
 
 		return array(
 			'ok'         => true,
 			'status'     => 'premium',
 			'message'    => sprintf(
 				/* translators: 1: plan label, 2: message quota, 3: expiry date */
-				__( '%1$s paketi aktif — %2$d konuşma hakkı, %3$s tarihine kadar (1 yıl).', 'f2f-ai-chatbot' ),
+				__( '%1$s paketi aktif — %2$d konuşma hakkı, %3$s tarihine kadar (1 yıl). Aynı anahtarı tekrar girmek süreyi sıfırlamaz.', 'f2f-ai-chatbot' ),
 				$pkg['label'],
 				$pkg['messages'],
 				wp_date( get_option( 'date_format' ), $expires )
@@ -232,7 +311,7 @@ class F2F_AI_Chatbot_License {
 			return false;
 		}
 		$meta['messages_used'] = $used + 1;
-		update_option( self::META_OPTION, $meta, false );
+		self::persist_activation( (string) $meta['key_hash'], $meta );
 		return true;
 	}
 
@@ -278,15 +357,15 @@ class F2F_AI_Chatbot_License {
 		if ( empty( $meta['key_hash'] ) || $meta['key_hash'] !== $hash || empty( $meta['expires_at'] ) ) {
 			$activated = self::activate( $license );
 			$meta      = self::meta();
-			if ( empty( $activated['ok'] ) ) {
+			if ( empty( $activated['ok'] ) && 'expired' !== (string) $activated['status'] ) {
 				$empty['license'] = self::mask( $license );
-				$empty['status']  = 'invalid';
+				$empty['status']  = isset( $activated['status'] ) ? (string) $activated['status'] : 'invalid';
 				$empty['message'] = $activated['message'];
 				return $empty;
 			}
 		}
 
-		$expires   = (int) $meta['expires_at'];
+		$expires   = isset( $meta['expires_at'] ) ? (int) $meta['expires_at'] : 0;
 		$days_left = (int) max( 0, ceil( ( $expires - $now ) / DAY_IN_SECONDS ) );
 		$limit     = isset( $meta['messages_limit'] ) ? (int) $meta['messages_limit'] : (int) $pkg['messages'];
 		$used      = isset( $meta['messages_used'] ) ? (int) $meta['messages_used'] : 0;
@@ -301,7 +380,7 @@ class F2F_AI_Chatbot_License {
 				'status'         => 'expired',
 				'message'        => sprintf(
 					/* translators: %s: expiry date */
-					__( 'Premium süresi doldu (%s). Yeni lisans için F2F Bilişim ile iletişime geçin.', 'f2f-ai-chatbot' ),
+					__( 'Premium süresi doldu (%s). Aynı anahtarı tekrar girmek süreyi uzatmaz — yeni lisans için F2F Bilişim ile iletişime geçin.', 'f2f-ai-chatbot' ),
 					wp_date( get_option( 'date_format' ), $expires )
 				),
 				'expires_at'     => $expires,
@@ -323,7 +402,7 @@ class F2F_AI_Chatbot_License {
 				'status'         => 'exhausted',
 				'message'        => sprintf(
 					/* translators: 1: plan, 2: used, 3: limit */
-					__( '%1$s paket kotası doldu (%2$d / %3$d konuşma). Üst paket veya ek kontör için F2F ile iletişime geçin.', 'f2f-ai-chatbot' ),
+					__( '%1$s paket kotası doldu (%2$d / %3$d konuşma). Anahtarı yeniden girmek kotayı sıfırlamaz. Üst paket veya ek kontör için F2F ile iletişime geçin.', 'f2f-ai-chatbot' ),
 					$label,
 					$used,
 					$limit

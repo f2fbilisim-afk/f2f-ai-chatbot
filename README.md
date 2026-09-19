@@ -8,7 +8,7 @@ WordPress için **paketli lisanslı** AI chatbot (keşif → lead → sohbet + W
 | Business | 5.000 |
 | Pro | 15.000 |
 
-- Lisans alanı **boş** gelir; anahtar paketi + **1 yıl** açar  
+- Lisans alanı **boş** gelir; anahtar paketi + **1 yıl** açar (ilk aktivasyon kilitli — aynı anahtarı tekrar girmek uzatmaz)  
 - OpenAI müşteri panelinde **yok** — `F2F_AI_MASTER_OPENAI_KEY` (sizin API)  
 - **Lead e-posta bildirimi:** panele düşen her lead + AI özeti, müşterinin girdiği adrese `noreply@f2fbilisim.com` üzerinden gider  
 
