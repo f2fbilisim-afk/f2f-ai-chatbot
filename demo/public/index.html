@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>F2F AI Chatbot — Widget Demo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/plugin/css/widget.css" />
+    <link rel="stylesheet" href="/assets/demo.css" />
+  </head>
+  <body>
+    <div class="demo-shell">
+      <header class="demo-top">
+        <div class="brand">
+          <span class="brand-mark">F2F</span>
+          <span class="brand-name">Bilişim</span>
+        </div>
+        <p class="mode-pill" id="modePill">Yükleniyor…</p>
+      </header>
+
+      <main class="hero">
+        <p class="eyebrow">WordPress eklenti önizlemesi</p>
+        <h1>F2F AI Chatbot</h1>
+        <p class="lede">
+          OpenAI bağlı floating widget — site ziyaretçilerine anında yanıt.
+          Sağ alttaki balona tıklayarak deneyin.
+        </p>
+        <div class="cta-row">
+          <a class="cta" href="#kurulum">Kuruluma bak</a>
+          <button type="button" class="cta cta-ghost" id="openChatBtn">Sohbeti aç</button>
+        </div>
+      </main>
+
+      <section class="panel" id="kurulum">
+        <h2>WordPress kurulumu</h2>
+        <ol>
+          <li><code>f2f-ai-chatbot</code> klasörünü <code>wp-content/plugins/</code> altına kopyalayın (veya zip yükleyin).</li>
+          <li>Eklentileri etkinleştirin → <strong>Ayarlar → F2F AI Chatbot</strong>.</li>
+          <li>OpenAI API anahtarınızı girin, sistem promptunu ve marka rengini ayarlayın.</li>
+          <li>Widget otomatik olarak tüm sayfalarda sağ altta görünür.</li>
+        </ol>
+        <p class="note">
+          API anahtarı yalnızca sunucuda saklanır; tarayıcıya gönderilmez. Bu demo
+          sayfası aynı widget arayüzünü Node üzerinden gösterir.
+        </p>
+      </section>
+    </div>
+
+    <div id="f2f-ai-chatbot-root" class="f2f-ai-chatbot-root" aria-live="polite"></div>
+
+    <script>
+      window.f2fAiChatbot = {
+        restUrl: '/api/chat',
+        nonce: 'demo',
+        botName: 'F2F Asistan',
+        welcomeMessage: 'Merhaba! F2F Bilişim asistanıyım. Size nasıl yardımcı olabilirim?',
+        primaryColor: '#0B6E4F',
+        position: 'right',
+        i18n: {
+          placeholder: 'Mesajınızı yazın…',
+          send: 'Gönder',
+          open: 'Sohbeti aç',
+          close: 'Sohbeti kapat',
+          error: 'Bir hata oluştu. Lütfen tekrar deneyin.',
+          thinking: 'Yazıyor…',
+          offline: 'Bağlantı kurulamadı.',
+        },
+      };
+    </script>
+    <script src="/plugin/js/widget.js"></script>
+    <script src="/assets/demo.js"></script>
+  </body>
+</html>

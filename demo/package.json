@@ -1,0 +1,13 @@
+{
+  "name": "f2f-ai-chatbot-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Preview server for F2F AI Chatbot WordPress widget",
+  "scripts": {
+    "start": "node server.js",
+    "demo": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
