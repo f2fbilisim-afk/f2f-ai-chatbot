@@ -81,6 +81,60 @@
   background: #ef4444;
 }
 
+.f2f-quota-card__time {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.f2f-countdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 10px;
+}
+
+.f2f-countdown__cell {
+  min-width: 64px;
+  padding: 10px 12px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+}
+
+.f2f-countdown__cell strong {
+  display: block;
+  font-size: 1.45rem;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: #1d2327;
+}
+
+.f2f-countdown__cell span {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #646970;
+}
+
+.f2f-quota-card__dates {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: #3c434a;
+}
+
+.f2f-quota-card__bar--time {
+  margin-top: 0;
+}
+
+.f2f-quota-card__bar-fill--time {
+  background: #0b6e4f;
+}
+
 .f2f-quota-card__hint {
   margin: 10px 0 0;
   color: #3c434a;

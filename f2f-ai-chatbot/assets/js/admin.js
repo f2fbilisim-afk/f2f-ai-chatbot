@@ -1,6 +1,48 @@
 (function ($) {
   'use strict';
 
+  var countdownTimer = null;
+  var expiresAtSec = 0;
+  var skewMs = 0;
+
+  function pad2(n) {
+    n = Math.max(0, parseInt(n, 10) || 0);
+    return n < 10 ? '0' + n : String(n);
+  }
+
+  function renderCountdown() {
+    if (!expiresAtSec) {
+      $('#f2f_quota_time').prop('hidden', true);
+      return;
+    }
+    var nowSec = Math.floor((Date.now() - skewMs) / 1000);
+    var left = Math.max(0, expiresAtSec - nowSec);
+    var days = Math.floor(left / 86400);
+    var hours = Math.floor((left % 86400) / 3600);
+    var mins = Math.floor((left % 3600) / 60);
+    var secs = left % 60;
+    $('#f2f_cd_days').text(String(days));
+    $('#f2f_cd_hours').text(pad2(hours));
+    $('#f2f_cd_mins').text(pad2(mins));
+    $('#f2f_cd_secs').text(pad2(secs));
+    $('#f2f_quota_time').prop('hidden', false);
+  }
+
+  function startCountdown(expiresAt, serverNow) {
+    expiresAtSec = expiresAt ? parseInt(expiresAt, 10) || 0 : 0;
+    if (serverNow) {
+      skewMs = Date.now() - parseInt(serverNow, 10) * 1000;
+    }
+    if (countdownTimer) {
+      clearInterval(countdownTimer);
+      countdownTimer = null;
+    }
+    renderCountdown();
+    if (expiresAtSec) {
+      countdownTimer = setInterval(renderCountdown, 1000);
+    }
+  }
+
   function applyQuota(data) {
     if (!data) return;
     var $card = $('#f2f_quota_card');
@@ -38,13 +80,27 @@
     if (used !== null && used !== undefined && limit !== null && limit !== undefined) {
       bits.push('Kullanılan: ' + used + ' / ' + limit);
     }
-    if (data.days_left !== null && data.days_left !== undefined && data.premium) {
-      bits.push(data.days_left + ' gün kaldı');
-    }
     $('#f2f_quota_meta').text(bits.length ? bits.join(' · ') : data.message || '');
     $('#f2f_quota_hint').text(data.message || '');
     if (data.updated_at) {
       $('#f2f_quota_updated').text('Son güncelleme: ' + data.updated_at);
+    }
+
+    if (data.premium && data.expires_at) {
+      if (data.activated_label) {
+        $('#f2f_activated_label').prop('hidden', false).text('Başlangıç: ' + data.activated_label);
+      } else {
+        $('#f2f_activated_label').prop('hidden', true).text('');
+      }
+      $('#f2f_expires_label').text(
+        data.expires_at_label ? 'Bitiş: ' + data.expires_at_label : ''
+      );
+      $('#f2f_time_bar').css('width', (data.time_percent_used || 0) + '%');
+      $card.attr('data-expires-at', String(data.expires_at));
+      startCountdown(data.expires_at, data.server_now);
+    } else {
+      $('#f2f_quota_time').prop('hidden', true);
+      startCountdown(0, data.server_now);
     }
   }
 
@@ -145,7 +201,9 @@
       refreshQuota($(this));
     });
 
-    if ($('#f2f_quota_card').length) {
+    var $card = $('#f2f_quota_card');
+    if ($card.length) {
+      startCountdown($card.attr('data-expires-at'), $card.attr('data-server-now'));
       setInterval(function () {
         refreshQuota(null);
       }, 30000);

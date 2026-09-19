@@ -229,18 +229,63 @@ class F2F_AI_Chatbot_Admin {
 			? (int) min( 100, round( ( (int) $used / (int) $limit ) * 100 ) )
 			: 0;
 
+		$expires_at = isset( $lic['expires_at'] ) && $lic['expires_at'] ? (int) $lic['expires_at'] : null;
+		$now        = time();
+		$sec_left   = null;
+		$cd_days    = null;
+		$cd_hours   = null;
+		$cd_mins    = null;
+		$cd_secs    = null;
+		$expires_fmt = '';
+		$expires_iso = '';
+
+		if ( $expires_at ) {
+			$sec_left    = max( 0, $expires_at - $now );
+			$cd_days     = (int) floor( $sec_left / DAY_IN_SECONDS );
+			$rem         = $sec_left % DAY_IN_SECONDS;
+			$cd_hours    = (int) floor( $rem / HOUR_IN_SECONDS );
+			$rem         = $rem % HOUR_IN_SECONDS;
+			$cd_mins     = (int) floor( $rem / MINUTE_IN_SECONDS );
+			$cd_secs     = (int) ( $rem % MINUTE_IN_SECONDS );
+			$expires_fmt = wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $expires_at );
+			$expires_iso = gmdate( 'c', $expires_at );
+		}
+
+		$meta          = class_exists( 'F2F_AI_Chatbot_License' ) ? F2F_AI_Chatbot_License::meta() : array();
+		$activated_at  = isset( $meta['activated_at'] ) ? (int) $meta['activated_at'] : null;
+		$activated_fmt = $activated_at ? wp_date( get_option( 'date_format' ), $activated_at ) : '';
+
+		$time_pct = 0;
+		if ( $expires_at && $activated_at && $expires_at > $activated_at ) {
+			$elapsed  = max( 0, $now - $activated_at );
+			$total    = max( 1, $expires_at - $activated_at );
+			$time_pct = (int) min( 100, round( ( $elapsed / $total ) * 100 ) );
+		}
+
 		return array(
-			'status'         => isset( $lic['status'] ) ? (string) $lic['status'] : 'missing',
-			'message'        => isset( $lic['message'] ) ? (string) $lic['message'] : '',
-			'plan_label'     => isset( $lic['plan_label'] ) ? (string) $lic['plan_label'] : '',
-			'premium'        => ! empty( $lic['premium'] ),
-			'can_chat'       => ! empty( $lic['can_chat'] ),
-			'days_left'      => isset( $lic['days_left'] ) ? $lic['days_left'] : null,
-			'messages_left'  => $left,
-			'messages_limit' => $limit,
-			'messages_used'  => $used,
-			'percent_used'   => $pct,
-			'updated_at'     => current_time( 'mysql' ),
+			'status'            => isset( $lic['status'] ) ? (string) $lic['status'] : 'missing',
+			'message'           => isset( $lic['message'] ) ? (string) $lic['message'] : '',
+			'plan_label'        => isset( $lic['plan_label'] ) ? (string) $lic['plan_label'] : '',
+			'premium'           => ! empty( $lic['premium'] ),
+			'can_chat'          => ! empty( $lic['can_chat'] ),
+			'days_left'         => isset( $lic['days_left'] ) ? $lic['days_left'] : null,
+			'messages_left'     => $left,
+			'messages_limit'    => $limit,
+			'messages_used'     => $used,
+			'percent_used'      => $pct,
+			'expires_at'        => $expires_at,
+			'expires_at_iso'    => $expires_iso,
+			'expires_at_label'  => $expires_fmt,
+			'activated_at'      => $activated_at,
+			'activated_label'   => $activated_fmt,
+			'seconds_left'      => $sec_left,
+			'countdown_days'    => $cd_days,
+			'countdown_hours'   => $cd_hours,
+			'countdown_minutes' => $cd_mins,
+			'countdown_seconds' => $cd_secs,
+			'time_percent_used' => $time_pct,
+			'updated_at'        => current_time( 'mysql' ),
+			'server_now'        => $now,
 		);
 	}
 
@@ -256,8 +301,17 @@ class F2F_AI_Chatbot_Admin {
 		$lic  = class_exists( 'F2F_AI_Chatbot_Gateway' ) ? F2F_AI_Chatbot_Gateway::license_status() : array();
 		$left = array_key_exists( 'messages_left', $lic ) ? $lic['messages_left'] : null;
 		$limit = array_key_exists( 'messages_limit', $lic ) ? $lic['messages_limit'] : null;
+		$days = array_key_exists( 'days_left', $lic ) ? $lic['days_left'] : null;
 		if ( null === $left || null === $limit ) {
 			$title = __( 'F2F AI: lisans yok', 'f2f-ai-chatbot' );
+		} elseif ( null !== $days ) {
+			$title = sprintf(
+				/* translators: 1: left 2: limit 3: days */
+				__( 'F2F AI: %1$d/%2$d · %3$d gün', 'f2f-ai-chatbot' ),
+				(int) $left,
+				(int) $limit,
+				(int) $days
+			);
 		} else {
 			$title = sprintf(
 				/* translators: 1: left 2: limit */
@@ -346,9 +400,23 @@ class F2F_AI_Chatbot_Admin {
 			$q_days    = $q['days_left'];
 			$q_status  = (string) $q['status'];
 			$q_msg     = (string) $q['message'];
+			$q_exp     = (string) $q['expires_at_label'];
+			$q_act     = (string) $q['activated_label'];
+			$q_cd_d    = $q['countdown_days'];
+			$q_cd_h    = $q['countdown_hours'];
+			$q_cd_m    = $q['countdown_minutes'];
+			$q_cd_s    = $q['countdown_seconds'];
+			$q_time_pct = (int) $q['time_percent_used'];
+			$has_time  = ! empty( $q['expires_at'] ) && ! empty( $q['premium'] );
 			$card_mod  = $q_can ? 'is-ok' : ( 'exhausted' === $q_status ? 'is-warn' : 'is-bad' );
 			?>
-			<div class="f2f-quota-card <?php echo esc_attr( $card_mod ); ?>" id="f2f_quota_card" data-status="<?php echo esc_attr( $q_status ); ?>">
+			<div
+				class="f2f-quota-card <?php echo esc_attr( $card_mod ); ?>"
+				id="f2f_quota_card"
+				data-status="<?php echo esc_attr( $q_status ); ?>"
+				data-expires-at="<?php echo esc_attr( $q['expires_at'] ? (string) (int) $q['expires_at'] : '' ); ?>"
+				data-server-now="<?php echo esc_attr( (string) (int) $q['server_now'] ); ?>"
+			>
 				<div class="f2f-quota-card__head">
 					<div>
 						<p class="f2f-quota-card__eyebrow"><?php echo esc_html__( 'Güncel konuşma kotası', 'f2f-ai-chatbot' ); ?></p>
@@ -379,13 +447,6 @@ class F2F_AI_Chatbot_Admin {
 									(int) $q_limit
 								);
 							}
-							if ( null !== $q_days && ! empty( $q['premium'] ) ) {
-								$bits[] = sprintf(
-									/* translators: %d days */
-									__( '%d gün kaldı', 'f2f-ai-chatbot' ),
-									(int) $q_days
-								);
-							}
 							echo esc_html( $bits ? implode( ' · ', $bits ) : $q_msg );
 							?>
 						</p>
@@ -395,6 +456,47 @@ class F2F_AI_Chatbot_Admin {
 				<div class="f2f-quota-card__bar" <?php echo ( null === $q_limit ) ? 'hidden' : ''; ?> id="f2f_quota_bar_wrap">
 					<div class="f2f-quota-card__bar-fill" id="f2f_quota_bar" style="width:<?php echo esc_attr( (string) $q_pct ); ?>%;"></div>
 				</div>
+
+				<div class="f2f-quota-card__time" id="f2f_quota_time" <?php echo $has_time ? '' : 'hidden'; ?>>
+					<p class="f2f-quota-card__eyebrow"><?php echo esc_html__( 'Lisans süresi', 'f2f-ai-chatbot' ); ?></p>
+					<div class="f2f-countdown" id="f2f_countdown" aria-live="polite">
+						<div class="f2f-countdown__cell">
+							<strong id="f2f_cd_days"><?php echo esc_html( null !== $q_cd_d ? (string) (int) $q_cd_d : '0' ); ?></strong>
+							<span><?php echo esc_html__( 'gün', 'f2f-ai-chatbot' ); ?></span>
+						</div>
+						<div class="f2f-countdown__cell">
+							<strong id="f2f_cd_hours"><?php echo esc_html( null !== $q_cd_h ? sprintf( '%02d', (int) $q_cd_h ) : '00' ); ?></strong>
+							<span><?php echo esc_html__( 'saat', 'f2f-ai-chatbot' ); ?></span>
+						</div>
+						<div class="f2f-countdown__cell">
+							<strong id="f2f_cd_mins"><?php echo esc_html( null !== $q_cd_m ? sprintf( '%02d', (int) $q_cd_m ) : '00' ); ?></strong>
+							<span><?php echo esc_html__( 'dk', 'f2f-ai-chatbot' ); ?></span>
+						</div>
+						<div class="f2f-countdown__cell">
+							<strong id="f2f_cd_secs"><?php echo esc_html( null !== $q_cd_s ? sprintf( '%02d', (int) $q_cd_s ) : '00' ); ?></strong>
+							<span><?php echo esc_html__( 'sn', 'f2f-ai-chatbot' ); ?></span>
+						</div>
+					</div>
+					<p class="f2f-quota-card__dates" id="f2f_quota_dates">
+						<?php if ( $q_act ) : ?>
+							<span id="f2f_activated_label"><?php echo esc_html( sprintf( /* translators: %s date */ __( 'Başlangıç: %s', 'f2f-ai-chatbot' ), $q_act ) ); ?></span>
+							<span aria-hidden="true"> · </span>
+						<?php else : ?>
+							<span id="f2f_activated_label" hidden></span>
+						<?php endif; ?>
+						<span id="f2f_expires_label">
+							<?php
+							echo $q_exp
+								? esc_html( sprintf( /* translators: %s datetime */ __( 'Bitiş: %s', 'f2f-ai-chatbot' ), $q_exp ) )
+								: '';
+							?>
+						</span>
+					</p>
+					<div class="f2f-quota-card__bar f2f-quota-card__bar--time" id="f2f_time_bar_wrap">
+						<div class="f2f-quota-card__bar-fill f2f-quota-card__bar-fill--time" id="f2f_time_bar" style="width:<?php echo esc_attr( (string) $q_time_pct ); ?>%;"></div>
+					</div>
+				</div>
+
 				<p class="f2f-quota-card__hint" id="f2f_quota_hint"><?php echo esc_html( $q_msg ); ?></p>
 				<p class="f2f-quota-card__updated" id="f2f_quota_updated">
 					<?php
@@ -641,6 +743,8 @@ class F2F_AI_Chatbot_Admin {
 							$left      = isset( $lic['messages_left'] ) ? $lic['messages_left'] : null;
 							$limit     = isset( $lic['messages_limit'] ) ? $lic['messages_limit'] : null;
 							$used      = isset( $lic['messages_used'] ) ? $lic['messages_used'] : null;
+							$exp_at    = isset( $lic['expires_at'] ) ? (int) $lic['expires_at'] : 0;
+							$exp_label = $exp_at ? wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $exp_at ) : '';
 							$badge     = $can_chat ? 'PREMIUM' : strtoupper( $status );
 							$color     = $can_chat ? '#0b6e4f' : ( 'exhausted' === $status ? '#b45309' : '#9b1c1c' );
 							?>
@@ -654,10 +758,21 @@ class F2F_AI_Chatbot_Admin {
 								<?php if ( null !== $left && null !== $limit ) : ?>
 									— <?php echo esc_html( sprintf( /* translators: 1: left 2: limit */ __( 'Kalan konuşma: %1$d / %2$d', 'f2f-ai-chatbot' ), (int) $left, (int) $limit ) ); ?>
 								<?php endif; ?>
-								<?php if ( null !== $days_left && $premium ) : ?>
-									· <?php echo esc_html( sprintf( /* translators: %d days */ __( '%d gün', 'f2f-ai-chatbot' ), (int) $days_left ) ); ?>
-								<?php endif; ?>
 							</p>
+							<?php if ( $exp_label && $premium ) : ?>
+								<p style="margin:0 0 8px;font-size:13px;">
+									<?php
+									echo esc_html(
+										sprintf(
+											/* translators: 1: expiry datetime 2: days left */
+											__( 'Bitiş tarihi: %1$s (%2$d gün kaldı)', 'f2f-ai-chatbot' ),
+											$exp_label,
+											(int) $days_left
+										)
+									);
+									?>
+								</p>
+							<?php endif; ?>
 							<?php if ( null !== $used && null !== $limit && $limit > 0 ) : ?>
 								<div style="max-width:320px;height:8px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin:8px 0;">
 									<div style="height:100%;width:<?php echo esc_attr( (string) min( 100, round( ( $used / $limit ) * 100 ) ) ); ?>%;background:<?php echo esc_attr( $can_chat ? '#22c55e' : '#f59e0b' ); ?>;"></div>
