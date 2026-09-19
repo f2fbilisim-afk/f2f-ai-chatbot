@@ -4,7 +4,7 @@
  * Generated: 2026-09-19T08:40:40.712Z
  * Total keys: 1000
  * Packages: Starter 1000 / Business 5000 / Pro 15000 messages
- * Premium duration: 365 days from first activation.
+ * Premium duration: 365 days from first activation per site (re-entry does not reset).
  *
  * Plaintext keys are NOT stored here. Keep licenses/F2F-LICENSE-KEYS-PRIVATE.csv private.
  *
