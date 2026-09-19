@@ -558,6 +558,34 @@
   font-weight: 700;
 }
 
+.f2f-notify-box {
+  margin: 8px 0 16px;
+  padding: 16px 18px;
+  background: linear-gradient(165deg, #f0faf5 0%, #ffffff 55%);
+  border: 1px solid #c5e0d2;
+  border-radius: 14px;
+}
+
+.f2f-notify-box h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  color: #0f1f1a;
+}
+
+.f2f-notify-box__hint {
+  margin: 0 0 12px;
+  color: #4b5563;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.f2f-notify-box .f2f-field small {
+  display: block;
+  margin-top: 6px;
+  color: #6b7280;
+  font-size: 12px;
+}
+
 .f2f-scan {
   padding: 14px;
   border-radius: 12px;

@@ -10,6 +10,7 @@ WordPress için **paketli lisanslı** AI chatbot (keşif → lead → sohbet + W
 
 - Lisans alanı **boş** gelir; anahtar paketi + **1 yıl** açar  
 - OpenAI müşteri panelinde **yok** — `F2F_AI_MASTER_OPENAI_KEY` (sizin API)  
+- **Lead e-posta bildirimi:** panele düşen her lead + AI özeti, müşterinin girdiği adrese `noreply@f2fbilisim.com` üzerinden gider  
 
 Detay: [PRICING.md](./PRICING.md)
 
@@ -17,13 +18,16 @@ Detay: [PRICING.md](./PRICING.md)
 
 1. ZIP yükle → etkinleştir  
 2. **Ayarlar → Lisans** → F2F anahtarını yapıştır  
-3. Hizmet kutuları + **Siteyi tara**  
+3. Adım 5’te **bildirim e-postası** girin (boşsa WP yönetici maili)  
+4. Hizmet kutuları + **Siteyi tara**  
 
 ## Kurulum (F2F)
 
 ```php
 define('F2F_AI_MASTER_OPENAI_KEY', 'sk-proj-...');
 ```
+
+Sunucuda `wp_mail` / SMTP çalışır olmalı; From adresi `noreply@f2fbilisim.com` (SPF/DKIM önerilir).
 
 ## Anahtar üretimi
 

@@ -129,10 +129,18 @@ class F2F_AI_Chatbot_Admin {
 			if ( array_key_exists( 'auto_reindex', $input ) ) {
 				$out['auto_reindex'] = empty( $input['auto_reindex'] ) ? '0' : '1';
 			}
+			if ( array_key_exists( 'notify_on_lead', $input ) ) {
+				$out['notify_on_lead'] = empty( $input['notify_on_lead'] ) ? '0' : '1';
+			}
+			if ( array_key_exists( 'notify_on_summary', $input ) ) {
+				$out['notify_on_summary'] = empty( $input['notify_on_summary'] ) ? '0' : '1';
+			}
 		} else {
-			$out['enabled']     = empty( $input['enabled'] ) ? '0' : '1';
-			$out['show_teaser'] = empty( $input['show_teaser'] ) ? '0' : '1';
-			$out['auto_reindex'] = empty( $input['auto_reindex'] ) ? '0' : '1';
+			$out['enabled']            = empty( $input['enabled'] ) ? '0' : '1';
+			$out['show_teaser']        = empty( $input['show_teaser'] ) ? '0' : '1';
+			$out['auto_reindex']       = empty( $input['auto_reindex'] ) ? '0' : '1';
+			$out['notify_on_lead']     = empty( $input['notify_on_lead'] ) ? '0' : '1';
+			$out['notify_on_summary']  = empty( $input['notify_on_summary'] ) ? '0' : '1';
 		}
 
 		// API key is NOT accepted from the form anymore (paid SaaS).
@@ -195,6 +203,13 @@ class F2F_AI_Chatbot_Admin {
 			if ( isset( $input[ $key ] ) ) {
 				$out[ $key ] = sanitize_text_field( $input[ $key ] );
 			}
+		}
+
+		if ( isset( $input['notify_email'] ) ) {
+			$email = sanitize_email( (string) $input['notify_email'] );
+			$out['notify_email'] = is_email( $email ) ? $email : '';
+		} elseif ( ! $partial ) {
+			$out['notify_email'] = '';
 		}
 
 		foreach ( array( 'discover_subtext', 'lead_subtext', 'chat_welcome', 'whatsapp_message', 'teaser_message' ) as $ta ) {

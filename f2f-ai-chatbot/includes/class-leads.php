@@ -126,6 +126,10 @@ class F2F_AI_Chatbot_Leads {
 		// First timer: summarize 2 minutes after lead if no chat, or after chat activity.
 		self::schedule_summary( (int) $post_id );
 
+		if ( class_exists( 'F2F_AI_Chatbot_Notify' ) ) {
+			F2F_AI_Chatbot_Notify::send_new_lead( (int) $post_id );
+		}
+
 		return (int) $post_id;
 	}
 
@@ -259,6 +263,9 @@ class F2F_AI_Chatbot_Leads {
 			update_post_meta( $lead_id, '_f2f_summary', $summary );
 			update_post_meta( $lead_id, '_f2f_summarized', '1' );
 			update_post_meta( $lead_id, '_f2f_summarized_at', time() );
+			if ( class_exists( 'F2F_AI_Chatbot_Notify' ) ) {
+				F2F_AI_Chatbot_Notify::send_summary( $lead_id );
+			}
 			return array(
 				'ok'       => true,
 				'summary'  => $summary,
@@ -342,6 +349,10 @@ class F2F_AI_Chatbot_Leads {
 		update_post_meta( $lead_id, '_f2f_summary', $summary );
 		update_post_meta( $lead_id, '_f2f_summarized', '1' );
 		update_post_meta( $lead_id, '_f2f_summarized_at', time() );
+
+		if ( class_exists( 'F2F_AI_Chatbot_Notify' ) ) {
+			F2F_AI_Chatbot_Notify::send_summary( $lead_id );
+		}
 
 		return array(
 			'ok'       => true,

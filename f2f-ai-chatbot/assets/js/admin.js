@@ -182,6 +182,9 @@
       data.whatsapp_message = $('#wiz_whatsapp_message').val() || '';
       data.business_notes = $('#wiz_business_notes').val() || '';
       data.auto_reindex = $('#wiz_auto_reindex').is(':checked') ? '1' : '0';
+      data.notify_email = $('#wiz_notify_email').val() || '';
+      data.notify_on_lead = $('#wiz_notify_on_lead').is(':checked') ? '1' : '0';
+      data.notify_on_summary = $('#wiz_notify_on_summary').is(':checked') ? '1' : '0';
     }
     return data;
   }
