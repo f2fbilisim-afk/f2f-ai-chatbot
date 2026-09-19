@@ -112,6 +112,17 @@
 
     function openWidget() {
       root.classList.add('is-open');
+      launcher.setAttribute('aria-label', i18n.close || 'Kapat');
+    }
+
+    function closeWidget() {
+      root.classList.remove('is-open');
+      launcher.setAttribute('aria-label', i18n.open || 'Open');
+    }
+
+    function toggleWidget() {
+      if (root.classList.contains('is-open')) closeWidget();
+      else openWidget();
     }
 
     var teaser = null;
@@ -135,8 +146,9 @@
     launcher.appendChild(
       el('span', 'f2f-ai-launcher-text', { text: cfg.launcherLabel || 'AI' })
     );
+    launcher.appendChild(el('span', 'f2f-ai-launcher-close', { text: '×', 'aria-hidden': 'true' }));
     launcher.appendChild(el('span', 'f2f-ai-launcher-dot', { 'aria-hidden': 'true' }));
-    launcher.addEventListener('click', openWidget);
+    launcher.addEventListener('click', toggleWidget);
 
     var panel = el('div', 'f2f-ai-panel', { role: 'dialog', 'aria-label': cfg.botName || 'Chatbot' });
 
@@ -152,8 +164,8 @@
     header.appendChild(el('div', 'f2f-ai-header-title', { text: cfg.botName || 'AI Proje Ajanı' }));
     var minBtn = el('button', 'f2f-ai-minimize', {
       type: 'button',
-      'aria-label': i18n.close || 'Minimize',
-      text: '˅',
+      'aria-label': i18n.close || 'Kapat',
+      text: '×',
     });
     header.appendChild(minBtn);
     panel.appendChild(header);
@@ -381,9 +393,7 @@
     if (teaser) root.appendChild(teaser);
     root.appendChild(launcher);
 
-    minBtn.addEventListener('click', function () {
-      root.classList.remove('is-open');
-    });
+    minBtn.addEventListener('click', closeWidget);
 
     function fieldBlock(label, name, placeholder, type) {
       var wrap = el('div', 'f2f-ai-field');

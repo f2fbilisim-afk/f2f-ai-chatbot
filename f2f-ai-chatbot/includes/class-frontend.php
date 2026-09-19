@@ -78,7 +78,7 @@ class F2F_AI_Chatbot_Frontend {
 			'namePh'     => __( 'Adınız', 'f2f-ai-chatbot' ),
 			'lastPh'     => __( 'Soyadınız', 'f2f-ai-chatbot' ),
 			'open'       => __( 'Sohbeti aç', 'f2f-ai-chatbot' ),
-			'close'      => __( 'Küçült', 'f2f-ai-chatbot' ),
+			'close'      => __( 'Kapat', 'f2f-ai-chatbot' ),
 			'send'       => __( 'Gönder', 'f2f-ai-chatbot' ),
 			'thinking'   => __( 'Ajan yazıyor...', 'f2f-ai-chatbot' ),
 			'error'      => __( 'Bir hata oluştu. Tekrar deneyin.', 'f2f-ai-chatbot' ),
