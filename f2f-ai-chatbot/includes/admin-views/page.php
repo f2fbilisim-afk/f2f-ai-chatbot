@@ -313,7 +313,7 @@ $steps = array(
 			<label class="f2f-field"><span><?php echo esc_html__( 'WhatsApp ön mesaj', 'f2f-ai-chatbot' ); ?></span><textarea id="wiz_whatsapp_message" rows="2"><?php echo esc_textarea( (string) $s['whatsapp_message'] ); ?></textarea></label>
 
 			<p class="f2f-mail-card__inline-hint">
-				<?php echo esc_html__( 'Lead e-posta bildirimi bu sayfanın üstündeki “Lead e-posta ayarı” kartından kaydedilir (noreply@f2fbilisim.com).', 'f2f-ai-chatbot' ); ?>
+				<?php echo esc_html__( 'Lead e-posta bildirimi bu sayfanın üstündeki “Lead e-posta ayarı” kartından kaydedilir.', 'f2f-ai-chatbot' ); ?>
 				<a href="#f2f_mail_card"><?php echo esc_html__( 'Yukarıya git', 'f2f-ai-chatbot' ); ?></a>
 			</p>
 
@@ -405,7 +405,7 @@ $steps = array(
 							class="regular-text"
 							placeholder="<?php echo esc_attr( (string) get_option( 'admin_email' ) ); ?>"
 						/>
-						<p class="description"><?php echo esc_html__( 'Gönderen: noreply@f2fbilisim.com — boşsa WordPress yönetici e-postası.', 'f2f-ai-chatbot' ); ?></p>
+						<p class="description"><?php echo esc_html__( 'Ziyaretçi chat bilgileri bu adrese gider. Boşsa WordPress yönetici e-postası kullanılır.', 'f2f-ai-chatbot' ); ?></p>
 					</td>
 				</tr>
 				<tr>

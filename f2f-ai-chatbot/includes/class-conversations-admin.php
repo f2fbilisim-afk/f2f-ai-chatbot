@@ -117,7 +117,7 @@ class F2F_AI_Chatbot_Conversations_Admin {
 					<div>
 						<p class="f2f-conv__eyebrow"><?php echo esc_html__( 'Bildirimler', 'f2f-ai-chatbot' ); ?></p>
 						<h1><?php echo esc_html__( 'Lead e-posta ayarı', 'f2f-ai-chatbot' ); ?></h1>
-						<p class="f2f-conv__lede"><?php echo esc_html__( 'Her yeni lead ve AI özeti, girdiğiniz adrese noreply@f2fbilisim.com üzerinden gönderilir. WordPress paneline girmenize gerek kalmaz.', 'f2f-ai-chatbot' ); ?></p>
+						<p class="f2f-conv__lede"><?php echo esc_html__( 'Ziyaretçi chat box’a bilgilerini girdiğinde, yazdığınız e-posta adresine bu bilgiler otomatik gönderilir.', 'f2f-ai-chatbot' ); ?></p>
 					</div>
 				</header>
 				<?php
