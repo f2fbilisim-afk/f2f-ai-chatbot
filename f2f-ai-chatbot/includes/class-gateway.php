@@ -63,20 +63,28 @@ class F2F_AI_Chatbot_Gateway {
 		$local = F2F_AI_Chatbot_License::status();
 
 		// Developer / F2F-managed site: master key may run without a sold license.
-		if ( empty( $local['premium'] ) && self::master_openai_key() && defined( 'F2F_AI_ALLOW_MASTER_WITHOUT_LICENSE' ) && F2F_AI_ALLOW_MASTER_WITHOUT_LICENSE ) {
+		if ( empty( $local['can_chat'] ) && self::master_openai_key() && defined( 'F2F_AI_ALLOW_MASTER_WITHOUT_LICENSE' ) && F2F_AI_ALLOW_MASTER_WITHOUT_LICENSE ) {
 			return array(
-				'ok'         => true,
-				'license'    => '',
-				'credits'    => null,
-				'status'     => 'master',
-				'message'    => __( 'Geliştirici master modu (wp-config).', 'f2f-ai-chatbot' ),
-				'premium'    => true,
-				'expires_at' => null,
-				'days_left'  => null,
+				'ok'             => true,
+				'license'        => '',
+				'credits'        => null,
+				'status'         => 'master',
+				'message'        => __( 'Geliştirici master modu (wp-config).', 'f2f-ai-chatbot' ),
+				'premium'        => true,
+				'can_chat'       => true,
+				'expires_at'     => null,
+				'days_left'      => null,
+				'plan'           => 'master',
+				'plan_label'     => 'Master',
+				'messages_limit' => null,
+				'messages_used'  => null,
+				'messages_left'  => null,
 			);
 		}
 
-		$local['credits'] = null;
+		if ( ! isset( $local['credits'] ) && isset( $local['messages_left'] ) ) {
+			$local['credits'] = $local['messages_left'];
+		}
 		return $local;
 	}
 
@@ -89,8 +97,16 @@ class F2F_AI_Chatbot_Gateway {
 	 */
 	public static function chat( $messages, $args = array() ) {
 		$lic = self::license_status();
-		if ( empty( $lic['premium'] ) && empty( $lic['ok'] ) ) {
+		if ( empty( $lic['can_chat'] ) ) {
 			$status = isset( $lic['status'] ) ? (string) $lic['status'] : 'missing';
+			if ( 'exhausted' === $status ) {
+				return array(
+					'ok'      => false,
+					'status'  => 'no_credits',
+					'error'   => isset( $lic['message'] ) ? (string) $lic['message'] : __( 'Paket konuşma kotası doldu.', 'f2f-ai-chatbot' ),
+					'credits' => 0,
+				);
+			}
 			if ( 'expired' === $status ) {
 				return array(
 					'ok'    => false,
@@ -111,18 +127,25 @@ class F2F_AI_Chatbot_Gateway {
 
 		$s       = f2f_ai_chatbot_get_settings();
 		$license = isset( $s['license_key'] ) ? trim( (string) $s['license_key'] ) : '';
+		$result  = null;
 
 		// Optional remote platform (when you later proxy all traffic).
 		if ( $license && apply_filters( 'f2f_ai_chatbot_prefer_platform', false ) ) {
-			$platform = self::chat_via_platform( $license, $messages, $args );
-			if ( ! empty( $platform['ok'] ) ) {
-				return $platform;
+			$result = self::chat_via_platform( $license, $messages, $args );
+			if ( empty( $result['ok'] ) && empty( self::master_openai_key() ) ) {
+				return $result;
+			}
+			if ( ! empty( $result['ok'] ) ) {
+				F2F_AI_Chatbot_License::consume_message();
+				$st = F2F_AI_Chatbot_License::status();
+				$result['credits'] = isset( $st['messages_left'] ) ? (int) $st['messages_left'] : null;
+				return $result;
 			}
 		}
 
 		$master = self::master_openai_key();
 		if ( $master ) {
-			return F2F_AI_Chatbot_OpenAI::chat(
+			$result = F2F_AI_Chatbot_OpenAI::chat(
 				$master,
 				self::model(),
 				$messages,
@@ -131,17 +154,26 @@ class F2F_AI_Chatbot_Gateway {
 					'temperature' => isset( $args['temperature'] ) ? (float) $args['temperature'] : 0.5,
 				)
 			);
+			if ( ! empty( $result['ok'] ) ) {
+				F2F_AI_Chatbot_License::consume_message();
+				$st = F2F_AI_Chatbot_License::status();
+				$result['credits'] = isset( $st['messages_left'] ) ? (int) $st['messages_left'] : null;
+			}
+			return $result;
 		}
 
 		// Fallback: try platform if master key not on this WP install.
 		if ( $license ) {
-			$platform = self::chat_via_platform( $license, $messages, $args );
-			if ( ! empty( $platform['ok'] ) ) {
-				return $platform;
+			$result = self::chat_via_platform( $license, $messages, $args );
+			if ( ! empty( $result['ok'] ) ) {
+				F2F_AI_Chatbot_License::consume_message();
+				$st = F2F_AI_Chatbot_License::status();
+				$result['credits'] = isset( $st['messages_left'] ) ? (int) $st['messages_left'] : null;
+				return $result;
 			}
 			return array(
 				'ok'    => false,
-				'error' => isset( $platform['error'] ) ? $platform['error'] : __( 'AI servisine bağlanılamadı. F2F kurulumunda OpenAI master key veya platform gerekir.', 'f2f-ai-chatbot' ),
+				'error' => isset( $result['error'] ) ? $result['error'] : __( 'AI servisine bağlanılamadı. F2F kurulumunda OpenAI master key veya platform gerekir.', 'f2f-ai-chatbot' ),
 			);
 		}
 

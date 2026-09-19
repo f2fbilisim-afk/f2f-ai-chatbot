@@ -255,7 +255,7 @@ class F2F_AI_Chatbot_Admin {
 		?>
 		<div class="wrap f2f-ai-admin">
 			<h1><?php echo esc_html__( 'F2F AI Chatbot', 'f2f-ai-chatbot' ); ?></h1>
-			<p class="description"><?php echo esc_html__( 'Lisans anahtarı boş gelir. Satın aldığınız F2F anahtarını girince 1 yıl premium açılır. OpenAI API anahtarı bu panelde yoktur — F2F developer hesabından yönetilir.', 'f2f-ai-chatbot' ); ?></p>
+			<p class="description"><?php echo esc_html__( 'Lisans anahtarı boş gelir. Anahtar paketi (Starter / Business / Pro) konuşma kotasını ve 1 yıllık süreyi açar. OpenAI API anahtarı bu panelde yoktur.', 'f2f-ai-chatbot' ); ?></p>
 
 			<form method="post" action="options.php" class="f2f-ai-admin__form">
 				<?php settings_fields( 'f2f_ai_chatbot_group' ); ?>
@@ -472,7 +472,7 @@ class F2F_AI_Chatbot_Admin {
 						<td>
 							<input type="text" class="regular-text" id="f2f_license_key" name="<?php echo esc_attr( $opt ); ?>[license_key]" value="<?php echo esc_attr( (string) $s['license_key'] ); ?>" autocomplete="off" placeholder="F2F-XXXX-XXXX-XXXX-XXXX" spellcheck="false" />
 							<p class="description">
-								<?php echo esc_html__( 'Alan boş gelir. Satın alma sonrası F2F’nin verdiği anahtarı yapıştırın. Geçerli anahtar kaydedilince 1 yıl premium açılır.', 'f2f-ai-chatbot' ); ?>
+								<?php echo esc_html__( 'Boş gelir. Anahtar paketi belirler: Starter 1.000 / Business 5.000 / Pro 15.000 konuşma + 1 yıl.', 'f2f-ai-chatbot' ); ?>
 							</p>
 						</td>
 					</tr>
@@ -484,15 +484,33 @@ class F2F_AI_Chatbot_Admin {
 							$msg       = isset( $lic['message'] ) ? (string) $lic['message'] : '';
 							$days_left = isset( $lic['days_left'] ) ? $lic['days_left'] : null;
 							$premium   = ! empty( $lic['premium'] );
+							$can_chat  = ! empty( $lic['can_chat'] );
+							$plan_lbl  = isset( $lic['plan_label'] ) ? (string) $lic['plan_label'] : '';
+							$left      = isset( $lic['messages_left'] ) ? $lic['messages_left'] : null;
+							$limit     = isset( $lic['messages_limit'] ) ? $lic['messages_limit'] : null;
+							$used      = isset( $lic['messages_used'] ) ? $lic['messages_used'] : null;
+							$badge     = $can_chat ? 'PREMIUM' : strtoupper( $status );
+							$color     = $can_chat ? '#0b6e4f' : ( 'exhausted' === $status ? '#b45309' : '#9b1c1c' );
 							?>
 							<p style="margin:0 0 6px;">
-								<strong style="color:<?php echo $premium ? '#0b6e4f' : '#9b1c1c'; ?>;">
-									<?php echo esc_html( $premium ? 'PREMIUM' : strtoupper( $status ) ); ?>
+								<strong style="color:<?php echo esc_attr( $color ); ?>;">
+									<?php echo esc_html( $badge ); ?>
 								</strong>
+								<?php if ( $plan_lbl ) : ?>
+									· <?php echo esc_html( $plan_lbl ); ?>
+								<?php endif; ?>
+								<?php if ( null !== $left && null !== $limit ) : ?>
+									— <?php echo esc_html( sprintf( /* translators: 1: left 2: limit */ __( 'Kalan konuşma: %1$d / %2$d', 'f2f-ai-chatbot' ), (int) $left, (int) $limit ) ); ?>
+								<?php endif; ?>
 								<?php if ( null !== $days_left && $premium ) : ?>
-									— <?php echo esc_html( sprintf( /* translators: %d days */ __( '%d gün kaldı', 'f2f-ai-chatbot' ), (int) $days_left ) ); ?>
+									· <?php echo esc_html( sprintf( /* translators: %d days */ __( '%d gün', 'f2f-ai-chatbot' ), (int) $days_left ) ); ?>
 								<?php endif; ?>
 							</p>
+							<?php if ( null !== $used && null !== $limit && $limit > 0 ) : ?>
+								<div style="max-width:320px;height:8px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin:8px 0;">
+									<div style="height:100%;width:<?php echo esc_attr( (string) min( 100, round( ( $used / $limit ) * 100 ) ) ); ?>%;background:<?php echo esc_attr( $can_chat ? '#22c55e' : '#f59e0b' ); ?>;"></div>
+								</div>
+							<?php endif; ?>
 							<p class="description" style="margin:0;"><?php echo esc_html( $msg ); ?></p>
 							<?php if ( ! empty( $s['api_key'] ) ) : ?>
 								<p class="description" style="color:#b45309;">

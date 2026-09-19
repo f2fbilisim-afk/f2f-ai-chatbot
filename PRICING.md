@@ -1,77 +1,70 @@
-# F2F AI Chatbot — Lisans & satış modeli
+# F2F AI Chatbot — Lisans, paket & satış
 
-## Fikir (uygulanan)
+## Model
 
 1. **Plugin ZIP ücretli** satılır.  
-2. Kurulumda **Lisans anahtarı alanı boş** gelir.  
-3. Satın alana 1000’lik havuzdan **bir anahtar** verilir.  
-4. Anahtar eşleşirse site **1 yıl Premium** olur.  
-5. OpenAI **sizin developer proje API’niz** ile çalışır; bakiyeniz bitince OpenAI’ye kontör yüklersiniz. Müşteri paneline API key **konmaz**.
+2. Kurulumda **lisans alanı boş** gelir.  
+3. Satın alana havuzdan **paketli bir anahtar** verilir.  
+4. Anahtar → **1 yıl + konuşma kotası**.  
+5. OpenAI **sizin developer API’niz**; bakiye bitince OpenAI’ye top-up yaparsınız.
 
 ```
-Ziyaretçi → WP Plugin (premium lisans?) → F2F_AI_MASTER_OPENAI_KEY (wp-config)
-                                         → OpenAI (sizin hesabınız)
+Ziyaretçi → WP Plugin (süre + kota?) → F2F_AI_MASTER_OPENAI_KEY → OpenAI
 ```
 
-## 1000 lisans anahtarı
+## Paketler (anahtara gömülü)
 
-Üretim:
+| Paket | Konuşma hakkı / yıl | Anahtar adedi (1000) | Kim için |
+|-------|---------------------|----------------------|----------|
+| **Starter** | **1.000** | 600 | Küçük site |
+| **Business** | **5.000** | 300 | Orta trafik |
+| **Pro** | **15.000** | 100 | Yoğun site |
+
+1 konuşma = ziyaretçi 1 mesaj + asistan 1 yanıt (başarılı completion).
+
+Süre dolunca veya kota bitince sohbet durur; yeni anahtar / üst paket / yenileme satarsınız.
+
+## Neden süre + kota?
+
+- Sadece 1 yıl → bir site OpenAI bakiyenizi eritebilir  
+- Sadece kota → süresi bitmeyen “bedava” kullanım hissi  
+- **İkisi birlikte** maliyeti ve yenileme gelirini dengeler  
+
+## 1000 anahtar
 
 ```bash
 node tools/generate-licenses.mjs
 ```
 
-Çıktılar:
+| Dosya | Kim? |
+|-------|------|
+| `licenses/F2F-LICENSE-KEYS-PRIVATE.csv` | Sadece siz (`plan`, `messages_limit` sütunları) |
+| `f2f-ai-chatbot/includes/license-pool.php` | Eklentide (hash → plan) |
 
-| Dosya | Kim görür? |
-|-------|------------|
-| `licenses/F2F-LICENSE-KEYS-PRIVATE.csv` | **Sadece siz** — satılacak anahtar listesi |
-| `f2f-ai-chatbot/includes/license-pool.php` | Eklentide (yalnızca SHA-256 hash’ler) |
-
-CSV sütunları: `index, license_key, status, sold_to, sold_at, notes`  
-Satışta `status=sold` yapıp müşteri adını yazın; aynı anahtarı iki kez vermeyin.
-
-Format: `F2F-XXXX-XXXX-XXXX-XXXX`
+CSV: `index,license_key,plan,messages_limit,status,sold_to,sold_at,notes`
 
 ## Müşteri paneli
 
-- **Lisans anahtarı** — boş placeholder  
-- Durum: `MISSING` / `INVALID` / `PREMIUM` / `EXPIRED`  
-- Premium’da kalan gün sayısı  
+- Lisans anahtarı (boş)  
+- Paket adı + kalan konuşma + süre  
+- Kota dolunca `EXHAUSTED`  
 
-OpenAI / model / token alanları **yok**.
-
-## Sizin kurulum (müşteri sitesi)
-
-`wp-config.php`:
+## Sizin kurulum
 
 ```php
-define('F2F_AI_MASTER_OPENAI_KEY', 'sk-proj-...'); // OpenAI developer proje API
-define('F2F_AI_MODEL', 'gpt-4o-mini'); // isteğe bağlı
-
-// Kendi test sitenizde lisans olmadan denemek için:
-// define('F2F_AI_ALLOW_MASTER_WITHOUT_LICENSE', true);
+// wp-config.php
+define('F2F_AI_MASTER_OPENAI_KEY', 'sk-proj-...');
+define('F2F_AI_MODEL', 'gpt-4o-mini');
+// define('F2F_AI_ALLOW_MASTER_WITHOUT_LICENSE', true); // sadece kendi test siteniz
 ```
 
-Akış:
+## Fiyat önerisi
 
-1. Müşteriye ZIP + 1 satır anahtar verin  
-2. Eklentiyi kurun, master key’i wp-config’e yazın  
-3. Müşteri Ayarlar’a anahtarı yapıştırır → **Premium 365 gün**  
-4. Sohbet sizin OpenAI bakiyenizden düşer  
+| Kalem | Not |
+|-------|-----|
+| Starter / Business / Pro | ZIP + 1 yıl + kota |
+| Yenileme | Süre veya kota bitince aynı paketten yeni anahtar |
+| Upgrade | Business/Pro anahtarı verin (eskiyi `sold` bırakın) |
+| Kurulum hizmeti | İsteğe bağlı |
 
-## Ücret önerisi
-
-| Kalem | Ne için |
-|-------|---------|
-| Plugin + 1 yıl lisans | Tek sefer satış (ZIP + anahtar) |
-| Yıllık yenileme | Süre bitince yeni anahtar veya aynı anahtarı yeniden aktive (süresi dolmuşsa +365 gün) |
-| Kurulum hizmeti | İsteğe bağlı (wp-config + tarama + kutular) |
-
-OpenAI maliyetini (ortalama mesaj × fiyat) satış fiyatına **3–5×** gömün; bakiye azaldıkça developer hesabına top-up yapın.
-
-## Güvenlik notu
-
-- Eklentide **düz metin anahtar yok** — sadece hash.  
-- CSV’yi asla ZIP’e / public repo’ya koymayın (`licenses/` gitignore’da).  
-- İleride isterseniz `platform.f2fbilisim.com` ile site URL bağlama + uzaktan iptal eklenebilir.
+OpenAI maliyetinin **3–5×**’ini paket fiyatına gömün.
