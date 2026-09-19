@@ -32,8 +32,11 @@
         </p>
         <div class="cta-row">
           <button type="button" class="cta" id="openChatBtn">Widget’ı aç</button>
-          <a class="cta cta-ghost" href="/download/f2f-ai-chatbot.zip" download="f2f-ai-chatbot.zip">Plugin ZIP indir</a>
+          <button type="button" class="cta cta-ghost" id="downloadZipBtn" data-url="/download/f2f-ai-chatbot.zip">
+            Plugin ZIP indir
+          </button>
         </div>
+        <p class="download-hint" id="downloadHint" hidden></p>
       </main>
     </div>
 
@@ -65,6 +68,59 @@
         var launcher = document.querySelector('.f2f-ai-launcher');
         if (launcher) launcher.click();
       });
+
+      (function setupZipDownload() {
+        var btn = document.getElementById('downloadZipBtn');
+        var hint = document.getElementById('downloadHint');
+        if (!btn) return;
+        var zipUrl = btn.getAttribute('data-url') || '/download/f2f-ai-chatbot.zip';
+        var zipName = 'f2f-ai-chatbot.zip';
+
+        function setHint(text, isError) {
+          if (!hint) return;
+          hint.hidden = !text;
+          hint.textContent = text || '';
+          hint.classList.toggle('is-error', Boolean(isError));
+        }
+
+        function triggerBlobDownload(blob) {
+          var objectUrl = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = objectUrl;
+          a.download = zipName;
+          a.rel = 'noopener';
+          a.style.display = 'none';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(function () {
+            URL.revokeObjectURL(objectUrl);
+          }, 2000);
+        }
+
+        btn.addEventListener('click', function () {
+          btn.disabled = true;
+          setHint('ZIP hazırlanıyor…', false);
+          fetch(zipUrl, { cache: 'no-store' })
+            .then(function (res) {
+              if (!res.ok) throw new Error('HTTP ' + res.status);
+              return res.blob();
+            })
+            .then(function (blob) {
+              if (!blob || blob.size < 100) throw new Error('Boş dosya');
+              triggerBlobDownload(blob);
+              setHint('İndirme başladı (' + Math.round(blob.size / 1024) + ' KB).', false);
+            })
+            .catch(function () {
+              // Fallback: navigate so Content-Disposition can still save the file
+              setHint('Doğrudan bağlantı açılıyor…', false);
+              window.location.assign(zipUrl);
+            })
+            .finally(function () {
+              btn.disabled = false;
+            });
+        });
+      })();
     </script>
   </body>
 </html>

@@ -306,26 +306,56 @@ const server = http.createServer(async (req, res) => {
       serveFile(res, path.join(PLUGIN_ASSETS, rel));
       return;
     }
-    if (req.method === 'GET' && url.pathname.startsWith('/download/')) {
-      const rel = path.normalize(url.pathname.replace('/download/', '')).replace(/^(\.\.(\/|\\|$))+/, '');
-      const filePath = path.join(ROOT, 'public', 'download', rel);
-      fs.readFile(filePath, (err, data) => {
-        if (err) {
-          send(res, 404, 'Not found', { 'Content-Type': 'text/plain; charset=utf-8' });
-          return;
-        }
-        send(res, 200, data, {
-          'Content-Type': 'application/zip',
-          'Content-Disposition': `attachment; filename="${path.basename(rel)}"`,
-          'Cache-Control': 'no-cache',
-        });
-      });
+    if (
+      (req.method === 'GET' || req.method === 'HEAD') &&
+      (url.pathname.startsWith('/download/') || url.pathname === '/f2f-ai-chatbot.zip')
+    ) {
+      const rel =
+        url.pathname === '/f2f-ai-chatbot.zip'
+          ? 'f2f-ai-chatbot.zip'
+          : path.normalize(url.pathname.replace('/download/', '')).replace(/^(\.\.(\/|\\|$))+/, '');
+      const candidates = [
+        path.join(ROOT, 'public', 'download', rel),
+        path.join(ROOT, 'public', 'assets', rel),
+        path.join('/opt/cursor/artifacts', path.basename(rel)),
+      ];
+      const filePath = candidates.find((p) => fs.existsSync(p) && fs.statSync(p).isFile());
+      if (!filePath) {
+        send(res, 404, 'Not found', { 'Content-Type': 'text/plain; charset=utf-8' });
+        return;
+      }
+      const data = fs.readFileSync(filePath);
+      const headers = {
+        'Content-Type': 'application/zip',
+        'Content-Disposition': `attachment; filename="${path.basename(rel)}"`,
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Expose-Headers': 'Content-Disposition, Content-Length, Content-Type',
+        'X-Content-Type-Options': 'nosniff',
+      };
+      if (req.method === 'HEAD') {
+        res.writeHead(200, { 'Content-Length': data.length, ...headers });
+        res.end();
+        return;
+      }
+      send(res, 200, data, headers);
       return;
     }
 
     if (req.method === 'GET' && url.pathname.startsWith('/assets/')) {
       const rel = path.normalize(url.pathname.replace('/assets/', '')).replace(/^(\.\.(\/|\\|$))+/, '');
-      serveFile(res, path.join(ROOT, 'public', 'assets', rel));
+      const filePath = path.join(ROOT, 'public', 'assets', rel);
+      if (path.extname(rel).toLowerCase() === '.zip' && fs.existsSync(filePath)) {
+        const data = fs.readFileSync(filePath);
+        send(res, 200, data, {
+          'Content-Type': 'application/zip',
+          'Content-Disposition': `attachment; filename="${path.basename(rel)}"`,
+          'Cache-Control': 'no-store',
+          'Access-Control-Allow-Origin': '*',
+        });
+        return;
+      }
+      serveFile(res, filePath);
       return;
     }
 

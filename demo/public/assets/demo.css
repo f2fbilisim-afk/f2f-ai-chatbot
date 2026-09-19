@@ -137,6 +137,21 @@ body {
   color: var(--ink);
 }
 
+.cta:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.download-hint {
+  margin: 14px 0 0;
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+
+.download-hint.is-error {
+  color: #9b1c1c;
+}
+
 .panel {
   margin-top: 24px;
   padding: 28px 0 8px;
