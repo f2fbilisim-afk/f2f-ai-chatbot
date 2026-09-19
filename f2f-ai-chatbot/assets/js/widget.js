@@ -101,14 +101,42 @@
     }
     root.setAttribute('data-position', cfg.position === 'left' ? 'left' : 'right');
 
+    var bottomPct = typeof cfg.bottomMargin === 'number' ? cfg.bottomMargin : parseFloat(cfg.bottomMargin || '4');
+    var sidePct = typeof cfg.sideMargin === 'number' ? cfg.sideMargin : parseFloat(cfg.sideMargin || '2');
+    if (isNaN(bottomPct)) bottomPct = 4;
+    if (isNaN(sidePct)) sidePct = 2;
+    root.style.setProperty('--f2f-bottom', bottomPct + '%');
+    root.style.setProperty('--f2f-side', sidePct + '%');
+
     var i18n = cfg.i18n || {};
+
+    function openWidget() {
+      root.classList.add('is-open');
+    }
+
+    var teaser = null;
+    if (cfg.showTeaser !== false) {
+      teaser = el('button', 'f2f-ai-teaser', { type: 'button', 'aria-label': i18n.open || 'Open' });
+      teaser.appendChild(
+        el('span', 'f2f-ai-teaser-title', { text: cfg.teaserTitle || 'AI PROJE AJANI' })
+      );
+      teaser.appendChild(
+        el('span', 'f2f-ai-teaser-msg', {
+          text: cfg.teaserMessage || 'Merhaba! Fikrinizi anlatın, birlikte netleştirelim.',
+        })
+      );
+      teaser.addEventListener('click', openWidget);
+    }
 
     var launcher = el('button', 'f2f-ai-launcher', {
       type: 'button',
       'aria-label': i18n.open || 'Open',
-      html:
-        '<svg viewBox="0 0 24 24"><path d="M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-5 5v-5H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg>',
     });
+    launcher.appendChild(
+      el('span', 'f2f-ai-launcher-text', { text: cfg.launcherLabel || 'AI' })
+    );
+    launcher.appendChild(el('span', 'f2f-ai-launcher-dot', { 'aria-hidden': 'true' }));
+    launcher.addEventListener('click', openWidget);
 
     var panel = el('div', 'f2f-ai-panel', { role: 'dialog', 'aria-label': cfg.botName || 'Chatbot' });
 
@@ -350,11 +378,9 @@
     });
 
     root.appendChild(panel);
+    if (teaser) root.appendChild(teaser);
     root.appendChild(launcher);
 
-    launcher.addEventListener('click', function () {
-      root.classList.add('is-open');
-    });
     minBtn.addEventListener('click', function () {
       root.classList.remove('is-open');
     });

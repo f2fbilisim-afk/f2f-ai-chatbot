@@ -45,6 +45,12 @@ const PUBLIC_CONFIG = {
   avatarUrl: '/plugin/img/avatar-default.svg',
   primaryColor: '#22C55E',
   position: 'right',
+  bottomMargin: 4,
+  sideMargin: 2,
+  launcherLabel: 'AI',
+  teaserTitle: 'AI PROJE AJANI',
+  teaserMessage: 'Merhaba! Fikrinizi anlatın, birlikte netleştirelim.',
+  showTeaser: true,
   discoverHeadline: 'Ne oluşturmak istiyorsunuz?',
   discoverSubtext:
     'Ben F2F AI Proje Ajanı. Seçimden sonra kısa iletişim bilgisi alıp projenizi netleştirelim.',

@@ -83,6 +83,9 @@ class F2F_AI_Chatbot_Admin {
 		$text_keys = array(
 			'model',
 			'bot_name',
+			'launcher_label',
+			'teaser_title',
+			'teaser_message',
 			'avatar_url',
 			'discover_headline',
 			'discover_subtext',
@@ -117,7 +120,10 @@ class F2F_AI_Chatbot_Admin {
 
 		$out['system_prompt'] = isset( $input['system_prompt'] ) ? sanitize_textarea_field( $input['system_prompt'] ) : $defaults['system_prompt'];
 		$out['position']      = ( isset( $input['position'] ) && 'left' === $input['position'] ) ? 'left' : 'right';
+		$out['show_teaser']   = empty( $input['show_teaser'] ) ? '0' : '1';
 		$out['avatar_id']     = isset( $input['avatar_id'] ) ? absint( $input['avatar_id'] ) : 0;
+		$out['bottom_margin'] = isset( $input['bottom_margin'] ) ? max( 0, min( 40, (float) $input['bottom_margin'] ) ) : (float) $defaults['bottom_margin'];
+		$out['side_margin']   = isset( $input['side_margin'] ) ? max( 0, min( 20, (float) $input['side_margin'] ) ) : (float) $defaults['side_margin'];
 		$out['rate_limit']    = isset( $input['rate_limit'] ) ? max( 1, min( 200, absint( $input['rate_limit'] ) ) ) : (int) $defaults['rate_limit'];
 		$out['max_tokens']    = isset( $input['max_tokens'] ) ? max( 50, min( 4000, absint( $input['max_tokens'] ) ) ) : (int) $defaults['max_tokens'];
 		$out['temperature']   = isset( $input['temperature'] ) ? max( 0, min( 2, (float) $input['temperature'] ) ) : (float) $defaults['temperature'];
@@ -132,7 +138,7 @@ class F2F_AI_Chatbot_Admin {
 		}
 
 		// Longer text fields already handled except discover_subtext / lead_subtext / chat_welcome / whatsapp_message.
-		foreach ( array( 'discover_subtext', 'lead_subtext', 'chat_welcome', 'whatsapp_message' ) as $ta ) {
+		foreach ( array( 'discover_subtext', 'lead_subtext', 'chat_welcome', 'whatsapp_message', 'teaser_message' ) as $ta ) {
 			if ( isset( $input[ $ta ] ) ) {
 				$out[ $ta ] = sanitize_textarea_field( $input[ $ta ] );
 			}
@@ -266,10 +272,38 @@ class F2F_AI_Chatbot_Admin {
 						<td><input type="text" class="f2f-color-picker" id="f2f_primary_color" name="<?php echo esc_attr( $opt ); ?>[primary_color]" value="<?php echo esc_attr( $s['primary_color'] ); ?>" data-default-color="#22C55E" /></td>
 					</tr>
 					<tr>
-						<th><?php echo esc_html__( 'Konum', 'f2f-ai-chatbot' ); ?></th>
+						<th><?php echo esc_html__( 'Konum (sağ / sol)', 'f2f-ai-chatbot' ); ?></th>
 						<td>
 							<label style="margin-right:12px;"><input type="radio" name="<?php echo esc_attr( $opt ); ?>[position]" value="right" <?php checked( $s['position'], 'right' ); ?> /> <?php echo esc_html__( 'Sağ', 'f2f-ai-chatbot' ); ?></label>
 							<label><input type="radio" name="<?php echo esc_attr( $opt ); ?>[position]" value="left" <?php checked( $s['position'], 'left' ); ?> /> <?php echo esc_html__( 'Sol', 'f2f-ai-chatbot' ); ?></label>
+						</td>
+					</tr>
+					<tr>
+						<th><label for="f2f_bottom_margin"><?php echo esc_html__( 'Alt boşluk (bottom %)', 'f2f-ai-chatbot' ); ?></label></th>
+						<td>
+							<input type="number" min="0" max="40" step="0.5" id="f2f_bottom_margin" name="<?php echo esc_attr( $opt ); ?>[bottom_margin]" value="<?php echo esc_attr( (string) $s['bottom_margin'] ); ?>" class="small-text" /> %
+							<p class="description"><?php echo esc_html__( 'Ekranın altından yüzde olarak mesafe. Örn: 4 = %4.', 'f2f-ai-chatbot' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th><label for="f2f_side_margin"><?php echo esc_html__( 'Yan boşluk (side %)', 'f2f-ai-chatbot' ); ?></label></th>
+						<td>
+							<input type="number" min="0" max="20" step="0.5" id="f2f_side_margin" name="<?php echo esc_attr( $opt ); ?>[side_margin]" value="<?php echo esc_attr( (string) $s['side_margin'] ); ?>" class="small-text" /> %
+						</td>
+					</tr>
+					<tr>
+						<th><label for="f2f_launcher_label"><?php echo esc_html__( 'Yuvarlak ikon yazısı', 'f2f-ai-chatbot' ); ?></label></th>
+						<td><?php $this->field( 'launcher_label', $s ); ?></td>
+					</tr>
+					<tr>
+						<th><?php echo esc_html__( 'Karşılama balonu', 'f2f-ai-chatbot' ); ?></th>
+						<td>
+							<label style="display:block;margin-bottom:8px;">
+								<input type="checkbox" name="<?php echo esc_attr( $opt ); ?>[show_teaser]" value="1" <?php checked( $s['show_teaser'], '1' ); ?> />
+								<?php echo esc_html__( 'Kapalıyken balonu göster', 'f2f-ai-chatbot' ); ?>
+							</label>
+							<label style="display:block;margin-bottom:6px;"><?php echo esc_html__( 'Üst başlık (yeşil)', 'f2f-ai-chatbot' ); ?><br /><?php $this->field( 'teaser_title', $s ); ?></label>
+							<label style="display:block;"><?php echo esc_html__( 'Mesaj', 'f2f-ai-chatbot' ); ?><br /><?php $this->field( 'teaser_message', $s, 'textarea', array( 'rows' => 2, 'class' => 'large-text' ) ); ?></label>
 						</td>
 					</tr>
 				</table>
