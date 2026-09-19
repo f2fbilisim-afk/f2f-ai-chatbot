@@ -43,6 +43,40 @@
 
     $('#f2f_conv_search').on('input', applyFilters);
 
+    $(document).on('click', '.f2f-mail-card__save', function (e) {
+      e.preventDefault();
+      if (!window.f2fAiConv) return;
+      var prefix = $(this).data('prefix') || 'f2f_mail';
+      var $status = $('#' + prefix + '_status');
+      var $btn = $(this);
+      $btn.prop('disabled', true);
+      $status
+        .prop('hidden', false)
+        .removeClass('is-error')
+        .text(f2fAiConv.i18n.mailSaving || 'Kaydediliyor…');
+      $.post(f2fAiConv.ajaxUrl, {
+        action: 'f2f_ai_notify_save',
+        nonce: f2fAiConv.notifyNonce,
+        notify_email: $('#' + prefix + '_email').val() || '',
+        notify_on_lead: $('#' + prefix + '_on_lead').is(':checked') ? '1' : '0',
+        notify_on_summary: $('#' + prefix + '_on_summary').is(':checked') ? '1' : '0',
+      })
+        .done(function (res) {
+          if (res && res.success) {
+            $status.text(f2fAiConv.i18n.mailSaved || 'Kaydedildi');
+            toast(f2fAiConv.i18n.mailSaved || 'Kaydedildi', false);
+          } else {
+            $status.addClass('is-error').text(f2fAiConv.i18n.mailFail || 'Hata');
+          }
+        })
+        .fail(function () {
+          $status.addClass('is-error').text(f2fAiConv.i18n.mailFail || 'Hata');
+        })
+        .always(function () {
+          $btn.prop('disabled', false);
+        });
+    });
+
     $('.f2f-conv__status').on('change', function () {
       var $el = $(this);
       var $card = $el.closest('.f2f-lead-card');

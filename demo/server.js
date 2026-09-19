@@ -311,6 +311,20 @@ const server = http.createServer(async (req, res) => {
       });
       return;
     }
+    if (req.method === 'GET' && (url.pathname === '/mail-ayarlari.html' || url.pathname === '/mail-ayarlari')) {
+      fs.readFile(path.join(ROOT, 'public', 'mail-ayarlari.html'), (err, data) => {
+        if (err) {
+          send(res, 404, 'Not found', { 'Content-Type': 'text/plain; charset=utf-8' });
+          return;
+        }
+        send(res, 200, data, {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          Pragma: 'no-cache',
+        });
+      });
+      return;
+    }
     if (req.method === 'GET' && url.pathname.startsWith('/plugin/')) {
       const rel = path.normalize(url.pathname.replace('/plugin/', '')).replace(/^(\.\.(\/|\\|$))+/, '');
       serveFile(res, path.join(PLUGIN_ASSETS, rel));

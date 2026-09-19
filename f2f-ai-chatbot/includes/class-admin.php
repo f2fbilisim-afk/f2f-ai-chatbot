@@ -39,6 +39,7 @@ class F2F_AI_Chatbot_Admin {
 		add_action( 'wp_ajax_f2f_ai_license_quota', array( $this, 'ajax_license_quota' ) );
 		add_action( 'wp_ajax_f2f_ai_wizard_save', array( $this, 'ajax_wizard_save' ) );
 		add_action( 'wp_ajax_f2f_ai_wizard_finish', array( $this, 'ajax_wizard_finish' ) );
+		add_action( 'wp_ajax_f2f_ai_notify_save', array( $this, 'ajax_notify_save' ) );
 		add_filter( 'plugin_action_links_' . plugin_basename( F2F_AI_CHATBOT_FILE ), array( $this, 'action_links' ) );
 	}
 
@@ -301,6 +302,34 @@ class F2F_AI_Chatbot_Admin {
 				'settings' => $clean,
 				'quota'    => $this->quota_payload(),
 				'step'     => $step,
+			)
+		);
+	}
+
+	/**
+	 * Save only notify email settings (settings + conversations pages).
+	 */
+	public function ajax_notify_save() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => 'forbidden' ), 403 );
+		}
+		check_ajax_referer( 'f2f_ai_admin', 'nonce' );
+
+		$raw = array(
+			'_partial'           => 1,
+			'notify_email'       => isset( $_POST['notify_email'] ) ? wp_unslash( $_POST['notify_email'] ) : '',
+			'notify_on_lead'     => isset( $_POST['notify_on_lead'] ) ? wp_unslash( $_POST['notify_on_lead'] ) : '0',
+			'notify_on_summary'  => isset( $_POST['notify_on_summary'] ) ? wp_unslash( $_POST['notify_on_summary'] ) : '0',
+		);
+		$clean = $this->sanitize( $raw );
+		update_option( self::OPTION, $clean, false );
+
+		wp_send_json_success(
+			array(
+				'notify_email'      => $clean['notify_email'],
+				'notify_on_lead'    => $clean['notify_on_lead'],
+				'notify_on_summary' => $clean['notify_on_summary'],
+				'recipient'         => class_exists( 'F2F_AI_Chatbot_Notify' ) ? F2F_AI_Chatbot_Notify::recipient() : $clean['notify_email'],
 			)
 		);
 	}

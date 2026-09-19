@@ -179,6 +179,11 @@ $steps = array(
 		<p class="f2f-quota-card__updated" id="f2f_quota_updated"><?php echo esc_html( sprintf( __( 'Son güncelleme: %s', 'f2f-ai-chatbot' ), (string) $q['updated_at'] ) ); ?></p>
 	</div>
 
+	<?php
+	$notify_card_id = 'f2f_mail';
+	include F2F_AI_CHATBOT_PATH . 'includes/admin-views/notify-card.php';
+	?>
+
 	<nav class="f2f-steps" id="f2f_steps" aria-label="<?php echo esc_attr__( 'Kurulum adımları', 'f2f-ai-chatbot' ); ?>">
 		<?php foreach ( $steps as $num => $step ) : ?>
 			<button type="button" class="f2f-steps__item<?php echo ( (int) $num === (int) $start_step ) ? ' is-active' : ''; ?>" data-step="<?php echo esc_attr( (string) $num ); ?>">
@@ -307,29 +312,10 @@ $steps = array(
 			</div>
 			<label class="f2f-field"><span><?php echo esc_html__( 'WhatsApp ön mesaj', 'f2f-ai-chatbot' ); ?></span><textarea id="wiz_whatsapp_message" rows="2"><?php echo esc_textarea( (string) $s['whatsapp_message'] ); ?></textarea></label>
 
-			<div class="f2f-notify-box">
-				<h3><?php echo esc_html__( 'Lead e-posta bildirimi', 'f2f-ai-chatbot' ); ?></h3>
-				<p class="f2f-notify-box__hint"><?php echo esc_html__( 'Panele her yeni lead düştüğünde (ve AI özeti hazır olunca) bu adrese otomatik mail gider. Gönderen: noreply@f2fbilisim.com', 'f2f-ai-chatbot' ); ?></p>
-				<label class="f2f-field">
-					<span><?php echo esc_html__( 'Bildirim e-postası', 'f2f-ai-chatbot' ); ?></span>
-					<input
-						type="email"
-						id="wiz_notify_email"
-						value="<?php echo esc_attr( (string) ( $s['notify_email'] ? $s['notify_email'] : get_option( 'admin_email' ) ) ); ?>"
-						placeholder="satis@sirketiniz.com"
-						autocomplete="email"
-					/>
-					<small><?php echo esc_html__( 'Boş bırakırsanız WordPress yönetici e-postası kullanılır.', 'f2f-ai-chatbot' ); ?></small>
-				</label>
-				<label class="f2f-check">
-					<input type="checkbox" id="wiz_notify_on_lead" value="1" <?php checked( $s['notify_on_lead'], '1' ); ?> />
-					<span><?php echo esc_html__( 'Yeni lead gelince hemen mail at', 'f2f-ai-chatbot' ); ?></span>
-				</label>
-				<label class="f2f-check">
-					<input type="checkbox" id="wiz_notify_on_summary" value="1" <?php checked( $s['notify_on_summary'], '1' ); ?> />
-					<span><?php echo esc_html__( 'AI özeti hazır olunca tekrar mail at (isim, ilgi, özet, telefon, e-posta)', 'f2f-ai-chatbot' ); ?></span>
-				</label>
-			</div>
+			<p class="f2f-mail-card__inline-hint">
+				<?php echo esc_html__( 'Lead e-posta bildirimi bu sayfanın üstündeki “Lead e-posta ayarı” kartından kaydedilir (noreply@f2fbilisim.com).', 'f2f-ai-chatbot' ); ?>
+				<a href="#f2f_mail_card"><?php echo esc_html__( 'Yukarıya git', 'f2f-ai-chatbot' ); ?></a>
+			</p>
 
 			<label class="f2f-field"><span><?php echo esc_html__( 'İşletme / sektör notları', 'f2f-ai-chatbot' ); ?></span><textarea id="wiz_business_notes" rows="3" placeholder="<?php echo esc_attr__( 'CNC torna üretiyoruz; hosting satmıyoruz…', 'f2f-ai-chatbot' ); ?>"><?php echo esc_textarea( (string) $s['business_notes'] ); ?></textarea></label>
 			<div class="f2f-scan">

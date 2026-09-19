@@ -143,6 +143,16 @@ body {
   color: var(--accent);
 }
 
+.cta-secondary {
+  background: #16352b;
+  border-color: #16352b;
+  color: #f4fff8;
+}
+
+.cta-secondary:hover {
+  filter: brightness(1.08);
+}
+
 .cta-download:hover {
   background: rgba(11, 110, 79, 0.08);
 }

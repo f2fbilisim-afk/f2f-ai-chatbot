@@ -182,9 +182,9 @@
       data.whatsapp_message = $('#wiz_whatsapp_message').val() || '';
       data.business_notes = $('#wiz_business_notes').val() || '';
       data.auto_reindex = $('#wiz_auto_reindex').is(':checked') ? '1' : '0';
-      data.notify_email = $('#wiz_notify_email').val() || '';
-      data.notify_on_lead = $('#wiz_notify_on_lead').is(':checked') ? '1' : '0';
-      data.notify_on_summary = $('#wiz_notify_on_summary').is(':checked') ? '1' : '0';
+      data.notify_email = $('#f2f_mail_email').val() || '';
+      data.notify_on_lead = $('#f2f_mail_on_lead').is(':checked') ? '1' : '0';
+      data.notify_on_summary = $('#f2f_mail_on_summary').is(':checked') ? '1' : '0';
     }
     return data;
   }
@@ -360,6 +360,39 @@
         $('#f2f_support_card').addClass('is-hidden');
       }
     } catch (err) {}
+
+    $(document).on('click', '.f2f-mail-card__save', function (e) {
+      e.preventDefault();
+      if (!window.f2fAiAdmin) return;
+      var prefix = $(this).data('prefix') || 'f2f_mail';
+      var $status = $('#' + prefix + '_status');
+      var $btn = $(this);
+      $btn.prop('disabled', true);
+      $status
+        .prop('hidden', false)
+        .removeClass('is-error')
+        .text(f2fAiAdmin.i18n.saving);
+      $.post(f2fAiAdmin.ajaxUrl, {
+        action: 'f2f_ai_notify_save',
+        nonce: f2fAiAdmin.nonce,
+        notify_email: $('#' + prefix + '_email').val() || '',
+        notify_on_lead: $('#' + prefix + '_on_lead').is(':checked') ? '1' : '0',
+        notify_on_summary: $('#' + prefix + '_on_summary').is(':checked') ? '1' : '0',
+      })
+        .done(function (res) {
+          if (res && res.success) {
+            $status.text(f2fAiAdmin.i18n.saved);
+          } else {
+            $status.addClass('is-error').text(f2fAiAdmin.i18n.saveFail);
+          }
+        })
+        .fail(function () {
+          $status.addClass('is-error').text(f2fAiAdmin.i18n.saveFail);
+        })
+        .always(function () {
+          $btn.prop('disabled', false);
+        });
+    });
 
     var $card = $('#f2f_quota_card');
     if ($card.length) {

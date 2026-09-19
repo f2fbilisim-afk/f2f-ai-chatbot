@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lead e-posta ayarı — F2F AI Chatbot</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/plugin/css/admin.css?v=174" />
+    <style>
+      body {
+        margin: 0;
+        background:
+          radial-gradient(900px 420px at 10% -10%, rgba(34, 197, 94, 0.16), transparent 55%),
+          linear-gradient(180deg, #eef6f1 0%, #f7faf8 40%, #eef2f0 100%);
+        font-family: "Source Sans 3", system-ui, sans-serif;
+        color: #14201c;
+      }
+      .shell {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 28px 18px 48px;
+      }
+      .top {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+      .top a {
+        color: #0b6e4f;
+        font-weight: 700;
+        text-decoration: none;
+      }
+      .brand {
+        font-family: Fraunces, Georgia, serif;
+        font-size: 1.35rem;
+        margin: 0 0 4px;
+      }
+      .sub {
+        margin: 0;
+        color: #5b6b64;
+        font-size: 0.95rem;
+      }
+      .preview-note {
+        margin: 14px 0 0;
+        padding: 12px 14px;
+        border-radius: 12px;
+        background: #fff;
+        border: 1px solid #d8e5dd;
+        font-size: 13px;
+        color: #4b5563;
+        line-height: 1.45;
+      }
+      .button.button-primary {
+        appearance: none;
+        border: 0;
+        background: #0b6e4f;
+        color: #fff;
+        font-weight: 700;
+        min-height: 40px;
+        padding: 0 16px;
+        border-radius: 10px;
+        cursor: pointer;
+      }
+      .button.button-primary:disabled {
+        opacity: 0.6;
+        cursor: wait;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="top">
+        <div>
+          <p class="brand">F2F AI Chatbot</p>
+          <p class="sub">WordPress panelinde böyle görünür — lead düşünce mail buraya gider.</p>
+        </div>
+        <a href="/">← Demo siteye dön</a>
+      </div>
+
+      <section class="f2f-mail-card" id="f2f_mail_card" aria-labelledby="f2f_mail_title">
+        <div class="f2f-mail-card__head">
+          <div>
+            <p class="f2f-mail-card__eyebrow">Otomatik bildirim</p>
+            <h2 id="f2f_mail_title">Lead e-posta ayarı</h2>
+            <p class="f2f-mail-card__lede">
+              Panele lead düşünce bu adrese otomatik mail gider. Gönderen: noreply@f2fbilisim.com
+            </p>
+          </div>
+          <span class="f2f-mail-card__from">noreply@f2fbilisim.com</span>
+        </div>
+        <div class="f2f-mail-card__body">
+          <label class="f2f-mail-card__field">
+            <span>Bildirim e-postası (müşteri / satış ekibi)</span>
+            <input
+              type="email"
+              id="f2f_mail_email"
+              class="f2f-mail-card__input"
+              value="satis@ornekfirma.com"
+              placeholder="satis@sirketiniz.com"
+              autocomplete="email"
+            />
+          </label>
+          <div class="f2f-mail-card__toggles">
+            <label class="f2f-mail-card__check">
+              <input type="checkbox" id="f2f_mail_on_lead" value="1" checked />
+              <span>Yeni lead gelince hemen mail at</span>
+            </label>
+            <label class="f2f-mail-card__check">
+              <input type="checkbox" id="f2f_mail_on_summary" value="1" checked />
+              <span>AI özeti hazır olunca tekrar mail at</span>
+            </label>
+          </div>
+          <div class="f2f-mail-card__actions">
+            <button type="button" class="button button-primary f2f-mail-card__save" id="f2f_mail_save">
+              E-posta ayarını kaydet
+            </button>
+            <span class="f2f-mail-card__status" id="f2f_mail_status" hidden></span>
+          </div>
+        </div>
+      </section>
+
+      <p class="preview-note">
+        Gerçek WordPress’te bu kart <strong>AI Chat Bot → E-posta bildirimi</strong>,
+        konuşmalar paneli ve kurulum sayfasının üstünde görünür. Demo burada sadece
+        arayüzü gösterir; kayıt bu ortamda simüle edilir.
+      </p>
+    </div>
+    <script>
+      document.getElementById("f2f_mail_save").addEventListener("click", function () {
+        var btn = this;
+        var status = document.getElementById("f2f_mail_status");
+        var email = document.getElementById("f2f_mail_email").value || "";
+        btn.disabled = true;
+        status.hidden = false;
+        status.classList.remove("is-error");
+        status.textContent = "Kaydediliyor…";
+        setTimeout(function () {
+          status.textContent = "Kaydedildi → " + (email || "admin e-postası");
+          btn.disabled = false;
+        }, 500);
+      });
+    </script>
+  </body>
+</html>

@@ -62,6 +62,45 @@ class F2F_AI_Chatbot_Conversations_Admin {
 			'f2f-ai-chatbot-settings',
 			array( $this, 'redirect_settings' )
 		);
+
+		add_submenu_page(
+			'f2f-ai-conversations',
+			__( 'E-posta bildirimi', 'f2f-ai-chatbot' ),
+			__( 'E-posta bildirimi', 'f2f-ai-chatbot' ),
+			'manage_options',
+			'f2f-ai-mail-notify',
+			array( $this, 'render_mail_page' )
+		);
+	}
+
+	/**
+	 * Dedicated mail settings page (high visibility).
+	 */
+	public function render_mail_page() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		$s = f2f_ai_chatbot_get_settings();
+		?>
+		<div class="wrap f2f-conv-wrap">
+			<div class="f2f-conv" style="max-width:720px;">
+				<header class="f2f-conv__hero">
+					<div>
+						<p class="f2f-conv__eyebrow"><?php echo esc_html__( 'Bildirimler', 'f2f-ai-chatbot' ); ?></p>
+						<h1><?php echo esc_html__( 'Lead e-posta ayarı', 'f2f-ai-chatbot' ); ?></h1>
+						<p class="f2f-conv__lede"><?php echo esc_html__( 'Her yeni lead ve AI özeti, girdiğiniz adrese noreply@f2fbilisim.com üzerinden gönderilir. WordPress paneline girmenize gerek kalmaz.', 'f2f-ai-chatbot' ); ?></p>
+					</div>
+				</header>
+				<?php
+				$notify_card_id = 'f2f_mail';
+				include F2F_AI_CHATBOT_PATH . 'includes/admin-views/notify-card.php';
+				?>
+				<p style="margin-top:16px;">
+					<a class="f2f-conv__btn" href="<?php echo esc_url( admin_url( 'admin.php?page=f2f-ai-conversations' ) ); ?>"><?php echo esc_html__( '← Konuşmalara dön', 'f2f-ai-chatbot' ); ?></a>
+				</p>
+			</div>
+		</div>
+		<?php
 	}
 
 	/**
@@ -76,12 +115,24 @@ class F2F_AI_Chatbot_Conversations_Admin {
 	 * @param string $hook Hook.
 	 */
 	public function enqueue( $hook ) {
-		if ( 'toplevel_page_f2f-ai-conversations' !== $hook ) {
+		$hook = (string) $hook;
+		$ok   = (
+			'toplevel_page_f2f-ai-conversations' === $hook
+			|| false !== strpos( $hook, 'f2f-ai-mail-notify' )
+			|| false !== strpos( $hook, 'f2f-ai-conversations' )
+		);
+		if ( ! $ok ) {
 			return;
 		}
 		wp_enqueue_style(
 			'f2f-ai-conversations',
 			F2F_AI_CHATBOT_URL . 'assets/css/conversations.css',
+			array(),
+			F2F_AI_CHATBOT_VERSION
+		);
+		wp_enqueue_style(
+			'f2f-ai-chatbot-admin',
+			F2F_AI_CHATBOT_URL . 'assets/css/admin.css',
 			array(),
 			F2F_AI_CHATBOT_VERSION
 		);
@@ -96,12 +147,16 @@ class F2F_AI_Chatbot_Conversations_Admin {
 			'f2f-ai-conversations',
 			'f2fAiConv',
 			array(
-				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-				'nonce'   => wp_create_nonce( 'f2f_ai_lead_status' ),
-				'i18n'    => array(
-					'saved' => __( 'Durum güncellendi', 'f2f-ai-chatbot' ),
-					'fail'  => __( 'Güncellenemedi', 'f2f-ai-chatbot' ),
-					'empty' => __( 'Bu filtrede kayıt yok.', 'f2f-ai-chatbot' ),
+				'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
+				'nonce'       => wp_create_nonce( 'f2f_ai_lead_status' ),
+				'notifyNonce' => wp_create_nonce( 'f2f_ai_admin' ),
+				'i18n'        => array(
+					'saved'      => __( 'Durum güncellendi', 'f2f-ai-chatbot' ),
+					'fail'       => __( 'Güncellenemedi', 'f2f-ai-chatbot' ),
+					'empty'      => __( 'Bu filtrede kayıt yok.', 'f2f-ai-chatbot' ),
+					'mailSaving' => __( 'Kaydediliyor…', 'f2f-ai-chatbot' ),
+					'mailSaved'  => __( 'E-posta ayarı kaydedildi', 'f2f-ai-chatbot' ),
+					'mailFail'   => __( 'E-posta ayarı kaydedilemedi', 'f2f-ai-chatbot' ),
 				),
 			)
 		);
@@ -143,6 +198,7 @@ class F2F_AI_Chatbot_Conversations_Admin {
 						<p class="f2f-conv__lede"><?php echo esc_html__( 'Lead bilgileri ve AI özeti burada. Özet, son mesajdan 2 dakika sonra otomatik oluşur — satış ekibi buradan dönüş yapsın.', 'f2f-ai-chatbot' ); ?></p>
 					</div>
 					<div class="f2f-conv__hero-actions">
+						<a class="f2f-conv__btn" href="<?php echo esc_url( admin_url( 'admin.php?page=f2f-ai-mail-notify' ) ); ?>"><?php echo esc_html__( 'E-posta bildirimi', 'f2f-ai-chatbot' ); ?></a>
 						<a class="f2f-conv__btn" href="<?php echo esc_url( admin_url( 'options-general.php?page=f2f-ai-chatbot' ) ); ?>"><?php echo esc_html__( 'Kurulum / ayarlar', 'f2f-ai-chatbot' ); ?></a>
 						<a class="f2f-conv__btn f2f-conv__btn--primary" href="<?php echo esc_url( home_url( '/' ) ); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html__( 'Siteyi aç', 'f2f-ai-chatbot' ); ?></a>
 					</div>
@@ -166,6 +222,11 @@ class F2F_AI_Chatbot_Conversations_Admin {
 						<span><?php echo esc_html__( 'Özet bekleyen', 'f2f-ai-chatbot' ); ?></span>
 					</div>
 				</div>
+
+				<?php
+				$notify_card_id = 'f2f_mail';
+				include F2F_AI_CHATBOT_PATH . 'includes/admin-views/notify-card.php';
+				?>
 
 				<div class="f2f-conv__toolbar">
 					<label class="f2f-conv__search">
