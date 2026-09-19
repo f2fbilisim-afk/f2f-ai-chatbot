@@ -218,18 +218,37 @@
   }
 
   function finishWizard() {
-    saveStep(5, null);
+    if (!window.f2fAiAdmin) return;
+    var payload = collectStep(5);
+    setStatus(f2fAiAdmin.i18n.saving, false);
     $.post(f2fAiAdmin.ajaxUrl, {
-      action: 'f2f_ai_wizard_finish',
+      action: 'f2f_ai_wizard_save',
       nonce: f2fAiAdmin.nonce,
-    }).done(function (res) {
-      if (res && res.success) {
-        $('#f2f_done_box').prop('hidden', false);
-        $('#f2f_admin_root').attr('data-setup-done', '1');
-        setStatus('Kurulum tamam! Siteyi açıp widget’ı deneyin.', false);
-        if (res.data && res.data.quota) applyQuota(res.data.quota);
-      }
-    });
+      step: 5,
+      settings: payload,
+    })
+      .done(function (saveRes) {
+        if (saveRes && saveRes.success && saveRes.data && saveRes.data.quota) {
+          applyQuota(saveRes.data.quota);
+        }
+        return $.post(f2fAiAdmin.ajaxUrl, {
+          action: 'f2f_ai_wizard_finish',
+          nonce: f2fAiAdmin.nonce,
+        });
+      })
+      .done(function (res) {
+        if (res && res.success) {
+          $('#f2f_done_box').prop('hidden', false);
+          $('#f2f_admin_root').attr('data-setup-done', '1');
+          setStatus('Kurulum tamam! Siteyi açıp widget’ı deneyin.', false);
+          if (res.data && res.data.quota) applyQuota(res.data.quota);
+        } else {
+          setStatus(f2fAiAdmin.i18n.saveFail, true);
+        }
+      })
+      .fail(function () {
+        setStatus(f2fAiAdmin.i18n.saveFail, true);
+      });
   }
 
   $(function () {
