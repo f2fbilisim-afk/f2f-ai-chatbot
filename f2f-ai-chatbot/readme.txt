@@ -4,7 +4,7 @@ Tags: chatbot, openai, ai, widget, customer-support, lead
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.7.4
+Stable tag: 1.7.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,11 +23,15 @@ F2F AI Chatbot, WordPress sitenize paket lisanslı bir sohbet balonu ekler. Open
 
 == Installation ==
 
-1. ZIP’i WordPress’e yükleyin ve etkinleştirin.
-2. Ayarlar → F2F AI Chatbot → lisans anahtarını girin.
-3. AI Chat Bot → E-posta bildirimi adresini kaydedin; siteyi tarayın.
+1. Eski `f2f-ai-chatbot` / `f2f-ai-chatbot-2` vb. klasörleri silin (tek kopya kalsın).
+2. ZIP’i WordPress’e yükleyin ve etkinleştirin.
+3. Ayarlar → F2F AI Chatbot → lisans anahtarını girin.
+4. AI Chat Bot → E-posta bildirimi adresini kaydedin; siteyi tarayın.
 
 == Changelog ==
+
+= 1.7.5 =
+* Çift kurulumda fatal error engeli; ZIP klasör adı `f2f-ai-chatbot/`.
 
 = 1.7.4 =
 * Lead e-posta ayarı her zaman görünür kart + AI Chat Bot → E-posta bildirimi menüsü.

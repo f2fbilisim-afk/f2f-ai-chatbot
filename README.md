@@ -16,10 +16,11 @@ Detay: [PRICING.md](./PRICING.md)
 
 ## Kurulum (müşteri)
 
-1. ZIP yükle → etkinleştir  
-2. **Ayarlar → Lisans** → F2F anahtarını yapıştır  
-3. Adım 5’te **bildirim e-postası** girin (boşsa WP yönetici maili)  
-4. Hizmet kutuları + **Siteyi tara**  
+1. Eski plugin klasörlerini silin (`f2f-ai-chatbot`, `f2f-ai-chatbot-2`, `f2f-ai-chatbot-8` …) — **tek kopya** kalsın  
+2. ZIP yükle → etkinleştir  
+3. **Ayarlar → Lisans** → F2F anahtarını yapıştır  
+4. Adım 5 / **E-posta bildirimi** adresini girin  
+5. Hizmet kutuları + **Siteyi tara**  
 
 ## Kurulum (F2F)
 
