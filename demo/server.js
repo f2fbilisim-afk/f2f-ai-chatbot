@@ -306,6 +306,23 @@ const server = http.createServer(async (req, res) => {
       serveFile(res, path.join(PLUGIN_ASSETS, rel));
       return;
     }
+    if (req.method === 'GET' && url.pathname.startsWith('/download/')) {
+      const rel = path.normalize(url.pathname.replace('/download/', '')).replace(/^(\.\.(\/|\\|$))+/, '');
+      const filePath = path.join(ROOT, 'public', 'download', rel);
+      fs.readFile(filePath, (err, data) => {
+        if (err) {
+          send(res, 404, 'Not found', { 'Content-Type': 'text/plain; charset=utf-8' });
+          return;
+        }
+        send(res, 200, data, {
+          'Content-Type': 'application/zip',
+          'Content-Disposition': `attachment; filename="${path.basename(rel)}"`,
+          'Cache-Control': 'no-cache',
+        });
+      });
+      return;
+    }
+
     if (req.method === 'GET' && url.pathname.startsWith('/assets/')) {
       const rel = path.normalize(url.pathname.replace('/assets/', '')).replace(/^(\.\.(\/|\\|$))+/, '');
       serveFile(res, path.join(ROOT, 'public', 'assets', rel));

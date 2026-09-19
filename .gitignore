@@ -4,3 +4,5 @@ node_modules/
 *.log
 .demo-port
 artifacts/
+artifacts/*.zip
+demo/public/assets/*.zip
