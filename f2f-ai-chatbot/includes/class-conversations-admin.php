@@ -199,6 +199,10 @@ class F2F_AI_Chatbot_Conversations_Admin {
 							$phone      = isset( $row['phone'] ) ? (string) $row['phone'] : '';
 							$email      = isset( $row['email'] ) ? (string) $row['email'] : '';
 							$phone_href = preg_replace( '/\D+/', '', $phone );
+							$wa_href    = $phone_href;
+							if ( $wa_href && 0 === strpos( $wa_href, '0' ) ) {
+								$wa_href = '90' . substr( $wa_href, 1 );
+							}
 							$search_blob = strtolower( trim( $row['name'] . ' ' . $phone . ' ' . $email . ' ' . $row['interest'] . ' ' . $row['summary'] ) );
 							$initials    = '';
 							$parts       = preg_split( '/\s+/', trim( (string) $row['name'] ) );
@@ -261,8 +265,8 @@ class F2F_AI_Chatbot_Conversations_Admin {
 										<?php if ( $email ) : ?>
 											<a href="mailto:<?php echo esc_attr( $email ); ?>"><?php echo esc_html( $email ); ?></a>
 										<?php endif; ?>
-										<?php if ( $phone_href ) : ?>
-											<a class="is-wa" href="https://wa.me/<?php echo esc_attr( ltrim( $phone_href, '0' ) ); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html__( 'WhatsApp', 'f2f-ai-chatbot' ); ?></a>
+										<?php if ( $wa_href ) : ?>
+											<a class="is-wa" href="https://wa.me/<?php echo esc_attr( $wa_href ); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html__( 'WhatsApp', 'f2f-ai-chatbot' ); ?></a>
 										<?php endif; ?>
 									</div>
 									<label class="f2f-lead-card__status">
