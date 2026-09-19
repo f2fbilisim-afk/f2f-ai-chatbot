@@ -58,13 +58,44 @@ define('F2F_AI_MODEL', 'gpt-4o-mini');
 // define('F2F_AI_ALLOW_MASTER_WITHOUT_LICENSE', true); // sadece kendi test siteniz
 ```
 
-## Fiyat önerisi
+## Fiyat önerisi (yüksek marj — 2026)
 
-| Kalem | Not |
-|-------|-----|
-| Starter / Business / Pro | ZIP + 1 yıl + kota |
-| Yenileme | Süre veya kota bitince aynı paketten yeni anahtar |
-| Upgrade | Business/Pro anahtarı verin (eskiyi `sold` bırakın) |
-| Kurulum hizmeti | İsteğe bağlı |
+Maliyet varsayımı (`gpt-4o-mini` + site bilgisi): **~0,08–0,15 TL / konuşma**  
+(≈ 0,002–0,004 USD; kur ~40 TL/$ — kendi faturanıza göre güncelleyin.)
 
-OpenAI maliyetinin **3–5×**’ini paket fiyatına gömün.
+| Paket | OpenAI maliyeti (yaklaşık) | **Liste fiyatı (KDV hariç)** | Brüt marj bandı |
+|-------|----------------------------|------------------------------|-----------------|
+| **Starter** (1.000) | 80–150 TL | **4.990 TL / yıl** | ~97% |
+| **Business** (5.000) | 400–750 TL | **12.990 TL / yıl** | ~94–97% |
+| **Pro** (15.000) | 1.200–2.250 TL | **29.990 TL / yıl** | ~92–96% |
+
+**Önerilen satış seti (yüksek kar):**
+
+| Kalem | Fiyat |
+|-------|-------|
+| Starter | **4.990 TL** |
+| Business | **12.990 TL** (en çok satılacak “orta” paket) |
+| Pro | **29.990 TL** |
+| Kurulum / ayar hizmeti (tek sefer) | **2.490–4.990 TL** ekstra |
+| Kota bitince +1.000 konuşma top-up | **1.490 TL** |
+| Yıllık yenileme | Listenin **%80’i** (sadakat indirimi) |
+
+### Neden bu rakamlar?
+
+- Müşteri “chatbot + lead + WhatsApp + site tarama” alıyor; saf API değil.  
+- Sizin riskiniz OpenAI + destek; fiyat yazılım + hizmet gibi konumlanmalı.  
+- 5–10× API maliyeti hâlâ ucuz hissettirmez; **yüksek marj** için 15–40× bandı (yukarıdaki liste) daha doğru.  
+- Business’ı “en mantıklısı” diye fiyatlandırın (anchor: Pro pahalı, Starter kısıtlı).
+
+### Psikolojik paketleme
+
+- Sitede **Business’ı “Popüler”** işaretleyin.  
+- Starter’ı giriş / küçük site; Pro’yu ajans / e‑ticaret.  
+- İlk 10 müşteriye kurulum dahil kampanya → sonra kurulum ayrı satılır.
+
+### Dikkat
+
+- Fiyata **KDV** ekleyin (liste + KDV).  
+- Model’i `gpt-4o` gibi pahalıya çekerseniz kotayı düşürün veya fiyatı **×1,5–2** yapın.  
+- Çok ucuza satmayın (2.000 TL altı Starter) — marj erir, destek aynı kalır.
+
