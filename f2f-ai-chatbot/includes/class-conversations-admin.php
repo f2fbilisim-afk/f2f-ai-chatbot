@@ -30,14 +30,43 @@ class F2F_AI_Chatbot_Conversations_Admin {
 	}
 
 	private function __construct() {
-		add_action( 'admin_menu', array( $this, 'register_menu' ) );
+		add_action( 'admin_menu', array( $this, 'register_menu' ), 9 );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue' ) );
+		add_action( 'admin_notices', array( $this, 'maybe_admin_notice' ) );
+	}
+
+	/**
+	 * Help find the menu after install.
+	 */
+	public function maybe_admin_notice() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( ! $screen || ( 'plugins' !== $screen->id && 'dashboard' !== $screen->id ) ) {
+			return;
+		}
+		$conv = admin_url( 'admin.php?page=f2f-ai-conversations' );
+		$mail = admin_url( 'admin.php?page=f2f-ai-mail-notify' );
+		$set  = admin_url( 'options-general.php?page=f2f-ai-chatbot' );
+		echo '<div class="notice notice-success is-dismissible"><p><strong>F2F AI Chatbot</strong> — ';
+		echo esc_html__( 'Sol menüde “F2F AI Chatbot” olarak görünür.', 'f2f-ai-chatbot' );
+		echo ' <a href="' . esc_url( $conv ) . '">' . esc_html__( 'Konuşmalar', 'f2f-ai-chatbot' ) . '</a> · ';
+		echo '<a href="' . esc_url( $mail ) . '">' . esc_html__( 'E-posta bildirimi', 'f2f-ai-chatbot' ) . '</a> · ';
+		echo '<a href="' . esc_url( $set ) . '">' . esc_html__( 'Kurulum', 'f2f-ai-chatbot' ) . '</a>';
+		echo '</p></div>';
 	}
 
 	public function register_menu() {
+		static $registered = false;
+		if ( $registered ) {
+			return;
+		}
+		$registered = true;
+
 		add_menu_page(
-			__( 'AI Chat Bot konuşmalar', 'f2f-ai-chatbot' ),
-			__( 'AI Chat Bot', 'f2f-ai-chatbot' ),
+			__( 'F2F AI Chatbot', 'f2f-ai-chatbot' ),
+			__( 'F2F AI Chatbot', 'f2f-ai-chatbot' ),
 			'manage_options',
 			'f2f-ai-conversations',
 			array( $this, 'render_page' ),
@@ -56,20 +85,20 @@ class F2F_AI_Chatbot_Conversations_Admin {
 
 		add_submenu_page(
 			'f2f-ai-conversations',
-			__( 'Ayarlar', 'f2f-ai-chatbot' ),
-			__( 'Ayarlar', 'f2f-ai-chatbot' ),
-			'manage_options',
-			'f2f-ai-chatbot-settings',
-			array( $this, 'redirect_settings' )
-		);
-
-		add_submenu_page(
-			'f2f-ai-conversations',
 			__( 'E-posta bildirimi', 'f2f-ai-chatbot' ),
 			__( 'E-posta bildirimi', 'f2f-ai-chatbot' ),
 			'manage_options',
 			'f2f-ai-mail-notify',
 			array( $this, 'render_mail_page' )
+		);
+
+		add_submenu_page(
+			'f2f-ai-conversations',
+			__( 'Kurulum / ayarlar', 'f2f-ai-chatbot' ),
+			__( 'Kurulum / ayarlar', 'f2f-ai-chatbot' ),
+			'manage_options',
+			'f2f-ai-chatbot-settings',
+			array( $this, 'redirect_settings' )
 		);
 	}
 

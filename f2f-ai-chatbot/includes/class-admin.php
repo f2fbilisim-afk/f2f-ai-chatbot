@@ -48,12 +48,21 @@ class F2F_AI_Chatbot_Admin {
 	 * @return array<int, string>
 	 */
 	public function action_links( $links ) {
-		$url = admin_url( 'options-general.php?page=f2f-ai-chatbot' );
-		array_unshift( $links, '<a href="' . esc_url( $url ) . '">' . esc_html__( 'Ayarlar', 'f2f-ai-chatbot' ) . '</a>' );
-		return $links;
+		$extra = array(
+			'<a href="' . esc_url( admin_url( 'admin.php?page=f2f-ai-conversations' ) ) . '"><strong>' . esc_html__( 'Konuşmalar', 'f2f-ai-chatbot' ) . '</strong></a>',
+			'<a href="' . esc_url( admin_url( 'admin.php?page=f2f-ai-mail-notify' ) ) . '">' . esc_html__( 'E-posta', 'f2f-ai-chatbot' ) . '</a>',
+			'<a href="' . esc_url( admin_url( 'options-general.php?page=f2f-ai-chatbot' ) ) . '">' . esc_html__( 'Kurulum', 'f2f-ai-chatbot' ) . '</a>',
+		);
+		return array_merge( $extra, $links );
 	}
 
 	public function register_menu() {
+		static $registered = false;
+		if ( $registered ) {
+			return;
+		}
+		$registered = true;
+
 		add_options_page(
 			__( 'F2F AI Chatbot', 'f2f-ai-chatbot' ),
 			__( 'F2F AI Chatbot', 'f2f-ai-chatbot' ),

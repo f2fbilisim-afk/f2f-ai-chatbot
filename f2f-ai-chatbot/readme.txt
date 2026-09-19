@@ -4,7 +4,7 @@ Tags: chatbot, openai, ai, widget, customer-support, lead
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.7.5
+Stable tag: 1.7.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -18,29 +18,29 @@ F2F AI Chatbot, WordPress sitenize paket lisanslı bir sohbet balonu ekler. Open
 
 * Floating widget (keşif → lead → sohbet + WhatsApp)
 * Lisans + konuşma kotası (Starter / Business / Pro)
-* Konuşmalar paneli
-* Lead e-posta bildirimi (noreply@f2fbilisim.com) — menü: AI Chat Bot → E-posta bildirimi
+* Konuşmalar paneli — sol menü: **F2F AI Chatbot**
+* Lead e-posta bildirimi (noreply@f2fbilisim.com)
 
 == Installation ==
 
 1. Eski `f2f-ai-chatbot` / `f2f-ai-chatbot-2` vb. klasörleri silin (tek kopya kalsın).
 2. ZIP’i WordPress’e yükleyin ve etkinleştirin.
-3. Ayarlar → F2F AI Chatbot → lisans anahtarını girin.
-4. AI Chat Bot → E-posta bildirimi adresini kaydedin; siteyi tarayın.
+3. Sol menüde **F2F AI Chatbot** görünür (Konuşmalar / E-posta / Kurulum).
+4. Lisans + bildirim e-postasını kaydedin; siteyi tarayın.
 
 == Changelog ==
+
+= 1.7.6 =
+* Sol menü adı F2F AI Chatbot; kurulum sonrası doğrudan linkler; menü kaydı güçlendirildi.
 
 = 1.7.5 =
 * Çift kurulumda fatal error engeli; ZIP klasör adı `f2f-ai-chatbot/`.
 
 = 1.7.4 =
-* Lead e-posta ayarı her zaman görünür kart + AI Chat Bot → E-posta bildirimi menüsü.
+* Lead e-posta ayarı her zaman görünür kart + E-posta bildirimi menüsü.
 
 = 1.7.3 =
-* Lead e-posta bildirimi: yeni lead + AI özeti, müşteri bildirim adresine noreply@f2fbilisim.com üzerinden.
-
-= 1.7.2 =
-* Kurulum sihirbazı, konuşmalar paneli, destek kartı.
+* Lead e-posta bildirimi.
 
 = 1.0.0 =
 * İlk sürüm.

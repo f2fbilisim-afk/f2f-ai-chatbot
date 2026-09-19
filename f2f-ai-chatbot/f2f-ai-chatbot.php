@@ -3,7 +3,7 @@
  * Plugin Name:       F2F AI Chatbot
  * Plugin URI:        https://www.f2fbilisim.com
  * Description:       F2F lisanslı AI chatbot — Starter/Business/Pro paket + 1 yıl. OpenAI anahtarı müşteri panelinde yoktur.
- * Version:           1.7.5
+ * Version:           1.7.6
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            F2F Bilişim
@@ -17,12 +17,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// Prevent fatal if another copy is already loaded (e.g. f2f-ai-chatbot + f2f-ai-chatbot-8).
-if ( defined( 'F2F_AI_CHATBOT_VERSION' ) || function_exists( 'f2f_ai_chatbot_init' ) ) {
+// Only skip if THIS bootstrap already completed (same request / double include).
+if ( defined( 'F2F_AI_CHATBOT_LOADED' ) ) {
 	return;
 }
 
-define( 'F2F_AI_CHATBOT_VERSION', '1.7.5' );
+// Another plugin folder copy already loaded — don't redeclare classes/functions.
+if ( defined( 'F2F_AI_CHATBOT_VERSION' ) || class_exists( 'F2F_AI_Chatbot_Admin', false ) ) {
+	add_action(
+		'admin_notices',
+		static function () {
+			if ( ! current_user_can( 'activate_plugins' ) ) {
+				return;
+			}
+			echo '<div class="notice notice-error"><p>';
+			echo esc_html__( 'F2F AI Chatbot birden fazla klasörde yüklü. wp-content/plugins altında f2f-ai-chatbot dışında f2f-ai-chatbot-2 / -8 gibi kopyaları silin; yalnızca bir tane bırakıp etkinleştirin.', 'f2f-ai-chatbot' );
+			echo '</p></div>';
+		}
+	);
+	return;
+}
+
+define( 'F2F_AI_CHATBOT_VERSION', '1.7.6' );
 define( 'F2F_AI_CHATBOT_FILE', __FILE__ );
 define( 'F2F_AI_CHATBOT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'F2F_AI_CHATBOT_URL', plugin_dir_url( __FILE__ ) );
@@ -39,18 +55,71 @@ require_once F2F_AI_CHATBOT_PATH . 'includes/class-rest-api.php';
 require_once F2F_AI_CHATBOT_PATH . 'includes/class-frontend.php';
 
 /**
- * Bootstrap.
+ * Bootstrap — admin menus register immediately so they always appear.
  */
-function f2f_ai_chatbot_init() {
-	load_plugin_textdomain( 'f2f-ai-chatbot', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
-	F2F_AI_Chatbot_Leads::instance();
-	F2F_AI_Chatbot_Knowledge::instance();
-	F2F_AI_Chatbot_Admin::instance();
-	F2F_AI_Chatbot_Conversations_Admin::instance();
-	F2F_AI_Chatbot_REST_API::instance();
-	F2F_AI_Chatbot_Frontend::instance();
+function f2f_ai_chatbot_bootstrap() {
+	static $done = false;
+	if ( $done ) {
+		return;
+	}
+	$done = true;
+
+	load_plugin_textdomain( 'f2f-ai-chatbot', false, dirname( plugin_basename( F2F_AI_CHATBOT_FILE ) ) . '/languages' );
+
+	// Menus first — never bury behind other bootstrap that might fail.
+	if ( class_exists( 'F2F_AI_Chatbot_Admin' ) ) {
+		F2F_AI_Chatbot_Admin::instance();
+	}
+	if ( class_exists( 'F2F_AI_Chatbot_Conversations_Admin' ) ) {
+		F2F_AI_Chatbot_Conversations_Admin::instance();
+	}
+
+	if ( class_exists( 'F2F_AI_Chatbot_Leads' ) ) {
+		F2F_AI_Chatbot_Leads::instance();
+	}
+	if ( class_exists( 'F2F_AI_Chatbot_Knowledge' ) ) {
+		F2F_AI_Chatbot_Knowledge::instance();
+	}
+	if ( class_exists( 'F2F_AI_Chatbot_REST_API' ) ) {
+		F2F_AI_Chatbot_REST_API::instance();
+	}
+	if ( class_exists( 'F2F_AI_Chatbot_Frontend' ) ) {
+		F2F_AI_Chatbot_Frontend::instance();
+	}
 }
-add_action( 'plugins_loaded', 'f2f_ai_chatbot_init' );
+
+// Prefer early hook so admin_menu callbacks are registered before admin_menu fires.
+if ( did_action( 'plugins_loaded' ) ) {
+	f2f_ai_chatbot_bootstrap();
+} else {
+	add_action( 'plugins_loaded', 'f2f_ai_chatbot_bootstrap', 5 );
+}
+
+// Extra safety: if something delayed plugins_loaded init, still attach menus.
+add_action(
+	'admin_menu',
+	static function () {
+		if ( class_exists( 'F2F_AI_Chatbot_Conversations_Admin' ) ) {
+			F2F_AI_Chatbot_Conversations_Admin::instance();
+		}
+		if ( class_exists( 'F2F_AI_Chatbot_Admin' ) ) {
+			F2F_AI_Chatbot_Admin::instance();
+		}
+	},
+	1
+);
+
+define( 'F2F_AI_CHATBOT_LOADED', true );
+
+// Keep old callback name for any external references / dual-install detection.
+if ( ! function_exists( 'f2f_ai_chatbot_init' ) ) {
+	/**
+	 * @deprecated 1.7.6 Use f2f_ai_chatbot_bootstrap().
+	 */
+	function f2f_ai_chatbot_init() {
+		f2f_ai_chatbot_bootstrap();
+	}
+}
 
 /**
  * Generic defaults — müşteri sektör jargonunu panelden yazar.
