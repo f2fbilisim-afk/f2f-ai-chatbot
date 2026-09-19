@@ -35,6 +35,8 @@ class F2F_AI_Chatbot_Admin {
 		add_action( 'admin_menu', array( $this, 'register_menu' ) );
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+		add_action( 'admin_bar_menu', array( $this, 'admin_bar_quota' ), 100 );
+		add_action( 'wp_ajax_f2f_ai_license_quota', array( $this, 'ajax_license_quota' ) );
 		add_filter( 'plugin_action_links_' . plugin_basename( F2F_AI_CHATBOT_FILE ), array( $this, 'action_links' ) );
 	}
 
@@ -165,17 +167,20 @@ class F2F_AI_Chatbot_Admin {
 	 * @param string $hook Hook.
 	 */
 	public function enqueue_assets( $hook ) {
-		if ( 'settings_page_f2f-ai-chatbot' !== $hook ) {
-			return;
+		$on_settings = ( 'settings_page_f2f-ai-chatbot' === $hook );
+		if ( $on_settings ) {
+			wp_enqueue_media();
+			wp_enqueue_style( 'wp-color-picker' );
 		}
-		wp_enqueue_media();
-		wp_enqueue_style( 'wp-color-picker' );
 		wp_enqueue_style(
 			'f2f-ai-chatbot-admin',
 			F2F_AI_CHATBOT_URL . 'assets/css/admin.css',
 			array(),
 			F2F_AI_CHATBOT_VERSION
 		);
+		if ( ! $on_settings ) {
+			return;
+		}
 		wp_enqueue_script(
 			'f2f-ai-chatbot-admin',
 			F2F_AI_CHATBOT_URL . 'assets/js/admin.js',
@@ -188,12 +193,85 @@ class F2F_AI_Chatbot_Admin {
 			'f2fAiAdmin',
 			array(
 				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-				'nonce'   => wp_create_nonce( 'f2f_ai_reindex' ),
+				'nonce'   => wp_create_nonce( 'f2f_ai_admin' ),
 				'i18n'    => array(
-					'scanning' => __( 'Taranıyor…', 'f2f-ai-chatbot' ),
-					'done'     => __( 'Tarama tamamlandı.', 'f2f-ai-chatbot' ),
-					'fail'     => __( 'Tarama başarısız.', 'f2f-ai-chatbot' ),
+					'scanning'   => __( 'Taranıyor…', 'f2f-ai-chatbot' ),
+					'done'       => __( 'Tarama tamamlandı.', 'f2f-ai-chatbot' ),
+					'fail'       => __( 'Tarama başarısız.', 'f2f-ai-chatbot' ),
+					'refreshing' => __( 'Güncelleniyor…', 'f2f-ai-chatbot' ),
+					'refreshed'  => __( 'Kota güncellendi.', 'f2f-ai-chatbot' ),
+					'refreshFail'=> __( 'Kota okunamadı.', 'f2f-ai-chatbot' ),
 				),
+			)
+		);
+	}
+
+	/**
+	 * Live quota for admin AJAX / bar.
+	 */
+	public function ajax_license_quota() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => 'forbidden' ), 403 );
+		}
+		check_ajax_referer( 'f2f_ai_admin', 'nonce' );
+		wp_send_json_success( $this->quota_payload() );
+	}
+
+	/**
+	 * @return array<string, mixed>
+	 */
+	private function quota_payload() {
+		$lic = class_exists( 'F2F_AI_Chatbot_Gateway' ) ? F2F_AI_Chatbot_Gateway::license_status() : array();
+		$left  = array_key_exists( 'messages_left', $lic ) ? $lic['messages_left'] : null;
+		$limit = array_key_exists( 'messages_limit', $lic ) ? $lic['messages_limit'] : null;
+		$used  = array_key_exists( 'messages_used', $lic ) ? $lic['messages_used'] : null;
+		$pct   = ( null !== $used && null !== $limit && (int) $limit > 0 )
+			? (int) min( 100, round( ( (int) $used / (int) $limit ) * 100 ) )
+			: 0;
+
+		return array(
+			'status'         => isset( $lic['status'] ) ? (string) $lic['status'] : 'missing',
+			'message'        => isset( $lic['message'] ) ? (string) $lic['message'] : '',
+			'plan_label'     => isset( $lic['plan_label'] ) ? (string) $lic['plan_label'] : '',
+			'premium'        => ! empty( $lic['premium'] ),
+			'can_chat'       => ! empty( $lic['can_chat'] ),
+			'days_left'      => isset( $lic['days_left'] ) ? $lic['days_left'] : null,
+			'messages_left'  => $left,
+			'messages_limit' => $limit,
+			'messages_used'  => $used,
+			'percent_used'   => $pct,
+			'updated_at'     => current_time( 'mysql' ),
+		);
+	}
+
+	/**
+	 * Show remaining chats in the WP admin bar.
+	 *
+	 * @param \WP_Admin_Bar $bar Bar.
+	 */
+	public function admin_bar_quota( $bar ) {
+		if ( ! is_admin_bar_showing() || ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		$lic  = class_exists( 'F2F_AI_Chatbot_Gateway' ) ? F2F_AI_Chatbot_Gateway::license_status() : array();
+		$left = array_key_exists( 'messages_left', $lic ) ? $lic['messages_left'] : null;
+		$limit = array_key_exists( 'messages_limit', $lic ) ? $lic['messages_limit'] : null;
+		if ( null === $left || null === $limit ) {
+			$title = __( 'F2F AI: lisans yok', 'f2f-ai-chatbot' );
+		} else {
+			$title = sprintf(
+				/* translators: 1: left 2: limit */
+				__( 'F2F AI: %1$d / %2$d konuşma', 'f2f-ai-chatbot' ),
+				(int) $left,
+				(int) $limit
+			);
+		}
+		$bar->add_node(
+			array(
+				'id'    => 'f2f-ai-quota',
+				'title' => esc_html( $title ),
+				'href'  => admin_url( 'options-general.php?page=f2f-ai-chatbot' ),
+				'meta'  => array( 'class' => 'f2f-ai-admin-bar-quota' ),
 			)
 		);
 	}
@@ -256,6 +334,80 @@ class F2F_AI_Chatbot_Admin {
 		<div class="wrap f2f-ai-admin">
 			<h1><?php echo esc_html__( 'F2F AI Chatbot', 'f2f-ai-chatbot' ); ?></h1>
 			<p class="description"><?php echo esc_html__( 'Lisans anahtarı boş gelir. Anahtar paketi (Starter / Business / Pro) konuşma kotasını ve 1 yıllık süreyi açar. OpenAI API anahtarı bu panelde yoktur.', 'f2f-ai-chatbot' ); ?></p>
+
+			<?php
+			$q         = $this->quota_payload();
+			$q_left    = $q['messages_left'];
+			$q_limit   = $q['messages_limit'];
+			$q_used    = $q['messages_used'];
+			$q_pct     = (int) $q['percent_used'];
+			$q_can     = ! empty( $q['can_chat'] );
+			$q_plan    = (string) $q['plan_label'];
+			$q_days    = $q['days_left'];
+			$q_status  = (string) $q['status'];
+			$q_msg     = (string) $q['message'];
+			$card_mod  = $q_can ? 'is-ok' : ( 'exhausted' === $q_status ? 'is-warn' : 'is-bad' );
+			?>
+			<div class="f2f-quota-card <?php echo esc_attr( $card_mod ); ?>" id="f2f_quota_card" data-status="<?php echo esc_attr( $q_status ); ?>">
+				<div class="f2f-quota-card__head">
+					<div>
+						<p class="f2f-quota-card__eyebrow"><?php echo esc_html__( 'Güncel konuşma kotası', 'f2f-ai-chatbot' ); ?></p>
+						<p class="f2f-quota-card__value" id="f2f_quota_value">
+							<?php if ( null !== $q_left && null !== $q_limit ) : ?>
+								<strong id="f2f_quota_left"><?php echo esc_html( (string) (int) $q_left ); ?></strong>
+								<span id="f2f_quota_slash"> / </span>
+								<span id="f2f_quota_limit"><?php echo esc_html( (string) (int) $q_limit ); ?></span>
+								<span class="f2f-quota-card__unit" id="f2f_quota_unit"><?php echo esc_html__( 'konuşma kaldı', 'f2f-ai-chatbot' ); ?></span>
+							<?php else : ?>
+								<strong id="f2f_quota_left">—</strong>
+								<span id="f2f_quota_slash" hidden> / </span>
+								<span id="f2f_quota_limit" hidden></span>
+								<span class="f2f-quota-card__unit" id="f2f_quota_unit"><?php echo esc_html__( 'lisans girilmedi', 'f2f-ai-chatbot' ); ?></span>
+							<?php endif; ?>
+						</p>
+						<p class="f2f-quota-card__meta" id="f2f_quota_meta">
+							<?php
+							$bits = array();
+							if ( $q_plan ) {
+								$bits[] = $q_plan;
+							}
+							if ( null !== $q_used && null !== $q_limit ) {
+								$bits[] = sprintf(
+									/* translators: 1: used 2: limit */
+									__( 'Kullanılan: %1$d / %2$d', 'f2f-ai-chatbot' ),
+									(int) $q_used,
+									(int) $q_limit
+								);
+							}
+							if ( null !== $q_days && ! empty( $q['premium'] ) ) {
+								$bits[] = sprintf(
+									/* translators: %d days */
+									__( '%d gün kaldı', 'f2f-ai-chatbot' ),
+									(int) $q_days
+								);
+							}
+							echo esc_html( $bits ? implode( ' · ', $bits ) : $q_msg );
+							?>
+						</p>
+					</div>
+					<button type="button" class="button" id="f2f_quota_refresh"><?php echo esc_html__( 'Kotayı yenile', 'f2f-ai-chatbot' ); ?></button>
+				</div>
+				<div class="f2f-quota-card__bar" <?php echo ( null === $q_limit ) ? 'hidden' : ''; ?> id="f2f_quota_bar_wrap">
+					<div class="f2f-quota-card__bar-fill" id="f2f_quota_bar" style="width:<?php echo esc_attr( (string) $q_pct ); ?>%;"></div>
+				</div>
+				<p class="f2f-quota-card__hint" id="f2f_quota_hint"><?php echo esc_html( $q_msg ); ?></p>
+				<p class="f2f-quota-card__updated" id="f2f_quota_updated">
+					<?php
+					echo esc_html(
+						sprintf(
+							/* translators: %s datetime */
+							__( 'Son güncelleme: %s', 'f2f-ai-chatbot' ),
+							(string) $q['updated_at']
+						)
+					);
+					?>
+				</p>
+			</div>
 
 			<form method="post" action="options.php" class="f2f-ai-admin__form">
 				<?php settings_fields( 'f2f_ai_chatbot_group' ); ?>

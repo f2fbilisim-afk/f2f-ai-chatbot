@@ -408,7 +408,7 @@ class F2F_AI_Chatbot_Knowledge {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( array( 'message' => 'Forbidden' ), 403 );
 		}
-		check_ajax_referer( 'f2f_ai_reindex', 'nonce' );
+		check_ajax_referer( 'f2f_ai_admin', 'nonce' );
 		$result = self::reindex();
 		wp_send_json_success( $result );
 	}

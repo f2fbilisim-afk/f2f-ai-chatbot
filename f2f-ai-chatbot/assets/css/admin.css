@@ -1,3 +1,98 @@
+.f2f-quota-card {
+  max-width: 920px;
+  margin: 16px 0 8px;
+  padding: 18px 20px 14px;
+  border-radius: 10px;
+  border: 1px solid #c3e6cb;
+  background: #f0faf4;
+}
+
+.f2f-quota-card.is-warn {
+  border-color: #f0d9a8;
+  background: #fff8eb;
+}
+
+.f2f-quota-card.is-bad {
+  border-color: #f1c0c0;
+  background: #fdf2f2;
+}
+
+.f2f-quota-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.f2f-quota-card__eyebrow {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #50575e;
+}
+
+.f2f-quota-card__value {
+  margin: 0;
+  font-size: 1.65rem;
+  line-height: 1.2;
+  color: #1d2327;
+}
+
+.f2f-quota-card__value strong {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.f2f-quota-card__unit {
+  margin-left: 6px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #50575e;
+}
+
+.f2f-quota-card__meta {
+  margin: 8px 0 0;
+  color: #50575e;
+  font-size: 13px;
+}
+
+.f2f-quota-card__bar {
+  margin-top: 14px;
+  height: 10px;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.f2f-quota-card__bar-fill {
+  height: 100%;
+  background: #22c55e;
+  border-radius: 999px;
+  transition: width 0.35s ease;
+}
+
+.f2f-quota-card.is-warn .f2f-quota-card__bar-fill {
+  background: #f59e0b;
+}
+
+.f2f-quota-card.is-bad .f2f-quota-card__bar-fill {
+  background: #ef4444;
+}
+
+.f2f-quota-card__hint {
+  margin: 10px 0 0;
+  color: #3c434a;
+  font-size: 13px;
+}
+
+.f2f-quota-card__updated {
+  margin: 6px 0 0;
+  color: #8c8f94;
+  font-size: 12px;
+}
+
 .f2f-ai-admin .f2f-ai-admin__form {
   max-width: 920px;
   background: #fff;
