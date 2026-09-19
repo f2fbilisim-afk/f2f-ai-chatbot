@@ -325,6 +325,35 @@ const server = http.createServer(async (req, res) => {
       });
       return;
     }
+    if (req.method === 'GET' && (url.pathname === '/updates/f2f-ai-chatbot.json' || url.pathname === '/updates/f2f-ai-chatbot-update.json')) {
+      const candidates = [
+        path.join(ROOT, 'public', 'updates', 'f2f-ai-chatbot.json'),
+        path.join(ROOT, 'public', 'download', 'f2f-ai-chatbot-update.json'),
+        path.join('/opt/cursor/artifacts', 'f2f-ai-chatbot-update.json'),
+      ];
+      const filePath = candidates.find((p) => fs.existsSync(p) && fs.statSync(p).isFile());
+      if (!filePath) {
+        send(res, 404, 'Not found', { 'Content-Type': 'text/plain; charset=utf-8' });
+        return;
+      }
+      const raw = fs.readFileSync(filePath, 'utf8');
+      let payload = raw;
+      try {
+        const data = JSON.parse(raw);
+        // Demo: rewrite download to this server so local WP can test updates.
+        const host = req.headers.host || '127.0.0.1:43145';
+        data.download_url = `http://${host}/download/f2f-ai-chatbot.zip`;
+        payload = JSON.stringify(data, null, 2);
+      } catch {
+        /* keep raw */
+      }
+      send(res, 200, payload, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store',
+        'Access-Control-Allow-Origin': '*',
+      });
+      return;
+    }
     if (req.method === 'GET' && url.pathname.startsWith('/plugin/')) {
       const rel = path.normalize(url.pathname.replace('/plugin/', '')).replace(/^(\.\.(\/|\\|$))+/, '');
       serveFile(res, path.join(PLUGIN_ASSETS, rel));

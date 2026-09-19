@@ -3,7 +3,7 @@
  * Plugin Name:       F2F AI Chatbot
  * Plugin URI:        https://www.f2fbilisim.com
  * Description:       F2F lisanslı AI chatbot — Starter/Business/Pro paket + 1 yıl. OpenAI anahtarı müşteri panelinde yoktur.
- * Version:           1.7.10
+ * Version:           1.8.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            F2F Bilişim
@@ -11,6 +11,7 @@
  * License:           GPL-2.0-or-later
  * Text Domain:       f2f-ai-chatbot
  * Domain Path:       /languages
+ * Update URI:        https://www.f2fbilisim.com/updates/f2f-ai-chatbot.json
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -38,7 +39,7 @@ if ( defined( 'F2F_AI_CHATBOT_VERSION' ) || class_exists( 'F2F_AI_Chatbot_Admin'
 	return;
 }
 
-define( 'F2F_AI_CHATBOT_VERSION', '1.7.10' );
+define( 'F2F_AI_CHATBOT_VERSION', '1.8.0' );
 define( 'F2F_AI_CHATBOT_FILE', __FILE__ );
 define( 'F2F_AI_CHATBOT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'F2F_AI_CHATBOT_URL', plugin_dir_url( __FILE__ ) );
@@ -53,6 +54,7 @@ require_once F2F_AI_CHATBOT_PATH . 'includes/class-admin.php';
 require_once F2F_AI_CHATBOT_PATH . 'includes/class-conversations-admin.php';
 require_once F2F_AI_CHATBOT_PATH . 'includes/class-rest-api.php';
 require_once F2F_AI_CHATBOT_PATH . 'includes/class-frontend.php';
+require_once F2F_AI_CHATBOT_PATH . 'includes/class-updater.php';
 
 /**
  * Bootstrap — admin menus register immediately so they always appear.
@@ -72,6 +74,9 @@ function f2f_ai_chatbot_bootstrap() {
 	}
 	if ( class_exists( 'F2F_AI_Chatbot_Conversations_Admin' ) ) {
 		F2F_AI_Chatbot_Conversations_Admin::instance();
+	}
+	if ( class_exists( 'F2F_AI_Chatbot_Updater' ) ) {
+		F2F_AI_Chatbot_Updater::instance();
 	}
 
 	if ( class_exists( 'F2F_AI_Chatbot_Leads' ) ) {

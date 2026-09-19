@@ -1,0 +1,12 @@
+{
+  "name": "F2F AI Chatbot",
+  "slug": "f2f-ai-chatbot",
+  "version": "1.8.0",
+  "download_url": "https://www.f2fbilisim.com/downloads/f2f-ai-chatbot.zip",
+  "homepage": "https://www.f2fbilisim.com",
+  "requires": "6.0",
+  "tested": "6.7",
+  "requires_php": "7.4",
+  "last_updated": "2026-09-19",
+  "changelog": "<h4>1.8.0</h4><p>Otomatik güncelleme paketi — detay için F2F Bilişim.</p>"
+}
