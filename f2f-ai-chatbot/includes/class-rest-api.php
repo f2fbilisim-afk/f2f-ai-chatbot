@@ -1,6 +1,6 @@
 <?php
 /**
- * REST API for chat messages.
+ * REST API: lead + chat.
  *
  * @package F2F_AI_Chatbot
  */
@@ -10,27 +10,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Public chat endpoint under /wp-json/f2f-ai-chatbot/v1/chat
+ * /wp-json/f2f-ai-chatbot/v1/*
  */
 class F2F_AI_Chatbot_REST_API {
 
 	/**
-	 * Singleton.
-	 *
 	 * @var self|null
 	 */
 	private static $instance = null;
 
-	/**
-	 * Namespace.
-	 *
-	 * @var string
-	 */
 	const NS = 'f2f-ai-chatbot/v1';
 
 	/**
-	 * Get instance.
-	 *
 	 * @return self
 	 */
 	public static function instance() {
@@ -40,39 +31,11 @@ class F2F_AI_Chatbot_REST_API {
 		return self::$instance;
 	}
 
-	/**
-	 * Constructor.
-	 */
 	private function __construct() {
 		add_action( 'rest_api_init', array( $this, 'register_routes' ) );
 	}
 
-	/**
-	 * Register routes.
-	 */
 	public function register_routes() {
-		register_rest_route(
-			self::NS,
-			'/chat',
-			array(
-				'methods'             => 'POST',
-				'callback'            => array( $this, 'handle_chat' ),
-				'permission_callback' => array( $this, 'permission' ),
-				'args'                => array(
-					'message'  => array(
-						'required'          => true,
-						'type'              => 'string',
-						'sanitize_callback' => 'sanitize_text_field',
-					),
-					'history'  => array(
-						'required' => false,
-						'type'     => 'array',
-						'default'  => array(),
-					),
-				),
-			)
-		);
-
 		register_rest_route(
 			self::NS,
 			'/config',
@@ -82,11 +45,29 @@ class F2F_AI_Chatbot_REST_API {
 				'permission_callback' => '__return_true',
 			)
 		);
+
+		register_rest_route(
+			self::NS,
+			'/lead',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'handle_lead' ),
+				'permission_callback' => array( $this, 'permission' ),
+			)
+		);
+
+		register_rest_route(
+			self::NS,
+			'/chat',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'handle_chat' ),
+				'permission_callback' => array( $this, 'permission' ),
+			)
+		);
 	}
 
 	/**
-	 * Permission: widget must be enabled + valid nonce.
-	 *
 	 * @param WP_REST_Request $request Request.
 	 * @return true|WP_Error
 	 */
@@ -101,34 +82,73 @@ class F2F_AI_Chatbot_REST_API {
 			$nonce = $request->get_param( '_wpnonce' );
 		}
 		if ( ! $nonce || ! wp_verify_nonce( $nonce, 'wp_rest' ) ) {
-			return new WP_Error( 'f2f_nonce', __( 'Geçersiz güvenlik anahtarı. Sayfayı yenileyip tekrar deneyin.', 'f2f-ai-chatbot' ), array( 'status' => 403 ) );
+			return new WP_Error( 'f2f_nonce', __( 'Geçersiz güvenlik anahtarı. Sayfayı yenileyin.', 'f2f-ai-chatbot' ), array( 'status' => 403 ) );
 		}
-
 		return true;
 	}
 
 	/**
-	 * Public widget config (no secrets).
-	 *
 	 * @return WP_REST_Response
 	 */
 	public function handle_config() {
-		$s = f2f_ai_chatbot_get_settings();
+		return rest_ensure_response( f2f_ai_chatbot_public_config() );
+	}
+
+	/**
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function handle_lead( $request ) {
+		$first   = trim( (string) $request->get_param( 'first_name' ) );
+		$last    = trim( (string) $request->get_param( 'last_name' ) );
+		$phone   = trim( (string) $request->get_param( 'phone' ) );
+		$email   = trim( (string) $request->get_param( 'email' ) );
+		$service = trim( (string) $request->get_param( 'service' ) );
+		$intent  = trim( (string) $request->get_param( 'intent' ) );
+
+		if ( '' === $first || '' === $last ) {
+			return new WP_Error( 'f2f_name', __( 'Ad ve soyad zorunludur.', 'f2f-ai-chatbot' ), array( 'status' => 400 ) );
+		}
+		if ( '' === $phone || mb_strlen( $phone ) < 7 ) {
+			return new WP_Error( 'f2f_phone', __( 'Geçerli bir telefon girin.', 'f2f-ai-chatbot' ), array( 'status' => 400 ) );
+		}
+		if ( ! is_email( $email ) ) {
+			return new WP_Error( 'f2f_email', __( 'Geçerli bir e-posta girin.', 'f2f-ai-chatbot' ), array( 'status' => 400 ) );
+		}
+
+		$lead_id = F2F_AI_Chatbot_Leads::save(
+			array(
+				'first_name' => $first,
+				'last_name'  => $last,
+				'phone'      => $phone,
+				'email'      => $email,
+				'service'    => $service,
+				'intent'     => $intent,
+			)
+		);
+
+		if ( is_wp_error( $lead_id ) ) {
+			return $lead_id;
+		}
+
+		$settings = f2f_ai_chatbot_get_settings();
+		$welcome  = (string) $settings['chat_welcome'];
+		$welcome  = str_replace(
+			array( '{ad}', '{soyad}', '{hizmet}' ),
+			array( $first, $last, $service ? $service : __( 'proje', 'f2f-ai-chatbot' ) ),
+			$welcome
+		);
+
 		return rest_ensure_response(
 			array(
-				'enabled'         => ( '1' === (string) $s['enabled'] ),
-				'botName'         => $s['bot_name'],
-				'welcomeMessage'  => $s['welcome_message'],
-				'primaryColor'    => $s['primary_color'],
-				'position'        => $s['position'],
-				'hasApiKey'       => ! empty( $s['api_key'] ),
+				'ok'      => true,
+				'leadId'  => $lead_id,
+				'welcome' => $welcome,
 			)
 		);
 	}
 
 	/**
-	 * Handle chat turn.
-	 *
 	 * @param WP_REST_Request $request Request.
 	 * @return WP_REST_Response|WP_Error
 	 */
@@ -139,9 +159,8 @@ class F2F_AI_Chatbot_REST_API {
 		if ( '' === $message ) {
 			return new WP_Error( 'f2f_empty', __( 'Mesaj boş olamaz.', 'f2f-ai-chatbot' ), array( 'status' => 400 ) );
 		}
-
 		if ( mb_strlen( $message ) > 2000 ) {
-			return new WP_Error( 'f2f_long', __( 'Mesaj çok uzun (max 2000 karakter).', 'f2f-ai-chatbot' ), array( 'status' => 400 ) );
+			return new WP_Error( 'f2f_long', __( 'Mesaj çok uzun.', 'f2f-ai-chatbot' ), array( 'status' => 400 ) );
 		}
 
 		$rate = $this->check_rate_limit( (int) $settings['rate_limit'] );
@@ -149,14 +168,46 @@ class F2F_AI_Chatbot_REST_API {
 			return $rate;
 		}
 
-		$history  = $request->get_param( 'history' );
+		$lead = $request->get_param( 'lead' );
+		$lead_context = '';
+		if ( is_array( $lead ) ) {
+			$parts = array();
+			if ( ! empty( $lead['first_name'] ) ) {
+				$parts[] = 'Ad: ' . sanitize_text_field( (string) $lead['first_name'] );
+			}
+			if ( ! empty( $lead['last_name'] ) ) {
+				$parts[] = 'Soyad: ' . sanitize_text_field( (string) $lead['last_name'] );
+			}
+			if ( ! empty( $lead['phone'] ) ) {
+				$parts[] = 'Telefon: ' . sanitize_text_field( (string) $lead['phone'] );
+			}
+			if ( ! empty( $lead['email'] ) ) {
+				$parts[] = 'E-posta: ' . sanitize_email( (string) $lead['email'] );
+			}
+			if ( ! empty( $lead['service'] ) ) {
+				$parts[] = 'Seçilen hizmet: ' . sanitize_text_field( (string) $lead['service'] );
+			}
+			if ( ! empty( $lead['intent'] ) ) {
+				$parts[] = 'İlk mesaj/niyet: ' . sanitize_text_field( (string) $lead['intent'] );
+			}
+			if ( $parts ) {
+				$lead_context = "Ziyaretçi bilgileri:\n" . implode( "\n", $parts );
+			}
+		}
+
+		$system = (string) $settings['system_prompt'];
+		if ( $lead_context ) {
+			$system .= "\n\n" . $lead_context;
+		}
+
 		$messages = array(
 			array(
 				'role'    => 'system',
-				'content' => (string) $settings['system_prompt'],
+				'content' => $system,
 			),
 		);
 
+		$history = $request->get_param( 'history' );
 		if ( is_array( $history ) ) {
 			$history = array_slice( $history, -12 );
 			foreach ( $history as $turn ) {
@@ -206,19 +257,17 @@ class F2F_AI_Chatbot_REST_API {
 	}
 
 	/**
-	 * Simple IP-based hourly rate limit via transients.
-	 *
-	 * @param int $limit Max requests per hour.
+	 * @param int $limit Limit.
 	 * @return true|WP_Error
 	 */
 	private function check_rate_limit( $limit ) {
-		$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : 'unknown';
-		$key = 'f2f_ai_rl_' . md5( $ip );
+		$ip   = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : 'unknown';
+		$key  = 'f2f_ai_rl_' . md5( $ip );
 		$hits = (int) get_transient( $key );
 		if ( $hits >= $limit ) {
 			return new WP_Error(
 				'f2f_rate',
-				__( 'Çok fazla istek gönderildi. Lütfen bir süre sonra tekrar deneyin.', 'f2f-ai-chatbot' ),
+				__( 'Çok fazla istek. Lütfen sonra tekrar deneyin.', 'f2f-ai-chatbot' ),
 				array( 'status' => 429 )
 			);
 		}

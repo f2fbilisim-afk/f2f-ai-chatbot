@@ -1,6 +1,6 @@
 <?php
 /**
- * Frontend widget bootstrap.
+ * Frontend enqueue.
  *
  * @package F2F_AI_Chatbot
  */
@@ -10,20 +10,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Enqueue floating chat widget on the public site.
+ * Public widget.
  */
 class F2F_AI_Chatbot_Frontend {
 
 	/**
-	 * Singleton.
-	 *
 	 * @var self|null
 	 */
 	private static $instance = null;
 
 	/**
-	 * Get instance.
-	 *
 	 * @return self
 	 */
 	public static function instance() {
@@ -33,17 +29,12 @@ class F2F_AI_Chatbot_Frontend {
 		return self::$instance;
 	}
 
-	/**
-	 * Constructor.
-	 */
 	private function __construct() {
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue' ) );
 		add_action( 'wp_footer', array( $this, 'render_root' ), 5 );
 	}
 
 	/**
-	 * Whether widget should load.
-	 *
 	 * @return bool
 	 */
 	private function should_load() {
@@ -54,15 +45,10 @@ class F2F_AI_Chatbot_Frontend {
 		return ( '1' === (string) $s['enabled'] );
 	}
 
-	/**
-	 * Enqueue assets.
-	 */
 	public function enqueue() {
 		if ( ! $this->should_load() ) {
 			return;
 		}
-
-		$s = f2f_ai_chatbot_get_settings();
 
 		wp_enqueue_style(
 			'f2f-ai-chatbot-widget',
@@ -79,32 +65,30 @@ class F2F_AI_Chatbot_Frontend {
 			true
 		);
 
-		wp_localize_script(
-			'f2f-ai-chatbot-widget',
-			'f2fAiChatbot',
-			array(
-				'restUrl'        => esc_url_raw( rest_url( 'f2f-ai-chatbot/v1/chat' ) ),
-				'nonce'          => wp_create_nonce( 'wp_rest' ),
-				'botName'        => $s['bot_name'],
-				'welcomeMessage' => $s['welcome_message'],
-				'primaryColor'   => $s['primary_color'],
-				'position'       => $s['position'],
-				'i18n'           => array(
-					'placeholder'  => __( 'Mesajınızı yazın…', 'f2f-ai-chatbot' ),
-					'send'         => __( 'Gönder', 'f2f-ai-chatbot' ),
-					'open'         => __( 'Sohbeti aç', 'f2f-ai-chatbot' ),
-					'close'        => __( 'Sohbeti kapat', 'f2f-ai-chatbot' ),
-					'error'        => __( 'Bir hata oluştu. Lütfen tekrar deneyin.', 'f2f-ai-chatbot' ),
-					'thinking'     => __( 'Yazıyor…', 'f2f-ai-chatbot' ),
-					'offline'      => __( 'Bağlantı kurulamadı.', 'f2f-ai-chatbot' ),
-				),
-			)
+		$config = f2f_ai_chatbot_public_config();
+		$config['restUrl']  = esc_url_raw( rest_url( 'f2f-ai-chatbot/v1/' ) );
+		$config['nonce']    = wp_create_nonce( 'wp_rest' );
+		$config['i18n']     = array(
+			'firstName'  => __( 'Ad', 'f2f-ai-chatbot' ),
+			'lastName'   => __( 'Soyad', 'f2f-ai-chatbot' ),
+			'phone'      => __( 'Telefon', 'f2f-ai-chatbot' ),
+			'email'      => __( 'E-posta', 'f2f-ai-chatbot' ),
+			'phonePh'    => '05xx xxx xx xx',
+			'emailPh'    => 'ornek@firma.com',
+			'namePh'     => __( 'Adınız', 'f2f-ai-chatbot' ),
+			'lastPh'     => __( 'Soyadınız', 'f2f-ai-chatbot' ),
+			'open'       => __( 'Sohbeti aç', 'f2f-ai-chatbot' ),
+			'close'      => __( 'Küçült', 'f2f-ai-chatbot' ),
+			'send'       => __( 'Gönder', 'f2f-ai-chatbot' ),
+			'thinking'   => __( 'Ajan yazıyor...', 'f2f-ai-chatbot' ),
+			'error'      => __( 'Bir hata oluştu. Tekrar deneyin.', 'f2f-ai-chatbot' ),
+			'offline'    => __( 'Bağlantı kurulamadı.', 'f2f-ai-chatbot' ),
+			'required'   => __( 'Lütfen tüm alanları doldurun.', 'f2f-ai-chatbot' ),
 		);
+
+		wp_localize_script( 'f2f-ai-chatbot-widget', 'f2fAiChatbot', $config );
 	}
 
-	/**
-	 * Mount point in footer.
-	 */
 	public function render_root() {
 		if ( ! $this->should_load() ) {
 			return;

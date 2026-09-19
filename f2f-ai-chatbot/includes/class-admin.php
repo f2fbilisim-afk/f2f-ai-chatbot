@@ -1,6 +1,6 @@
 <?php
 /**
- * Admin settings page.
+ * Admin settings.
  *
  * @package F2F_AI_Chatbot
  */
@@ -10,27 +10,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Plugin settings UI under Settings → F2F AI Chatbot.
+ * Settings → F2F AI Chatbot
  */
 class F2F_AI_Chatbot_Admin {
 
 	/**
-	 * Singleton.
-	 *
 	 * @var self|null
 	 */
 	private static $instance = null;
 
-	/**
-	 * Option name.
-	 *
-	 * @var string
-	 */
 	const OPTION = 'f2f_ai_chatbot_settings';
 
 	/**
-	 * Get instance.
-	 *
 	 * @return self
 	 */
 	public static function instance() {
@@ -40,9 +31,6 @@ class F2F_AI_Chatbot_Admin {
 		return self::$instance;
 	}
 
-	/**
-	 * Constructor.
-	 */
 	private function __construct() {
 		add_action( 'admin_menu', array( $this, 'register_menu' ) );
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
@@ -51,23 +39,15 @@ class F2F_AI_Chatbot_Admin {
 	}
 
 	/**
-	 * Settings link on Plugins screen.
-	 *
-	 * @param array<int, string> $links Existing links.
+	 * @param array<int, string> $links Links.
 	 * @return array<int, string>
 	 */
 	public function action_links( $links ) {
 		$url = admin_url( 'options-general.php?page=f2f-ai-chatbot' );
-		array_unshift(
-			$links,
-			'<a href="' . esc_url( $url ) . '">' . esc_html__( 'Ayarlar', 'f2f-ai-chatbot' ) . '</a>'
-		);
+		array_unshift( $links, '<a href="' . esc_url( $url ) . '">' . esc_html__( 'Ayarlar', 'f2f-ai-chatbot' ) . '</a>' );
 		return $links;
 	}
 
-	/**
-	 * Register submenu.
-	 */
 	public function register_menu() {
 		add_options_page(
 			__( 'F2F AI Chatbot', 'f2f-ai-chatbot' ),
@@ -78,9 +58,6 @@ class F2F_AI_Chatbot_Admin {
 		);
 	}
 
-	/**
-	 * Register setting + sections.
-	 */
 	public function register_settings() {
 		register_setting(
 			'f2f_ai_chatbot_group',
@@ -94,9 +71,7 @@ class F2F_AI_Chatbot_Admin {
 	}
 
 	/**
-	 * Sanitize settings payload.
-	 *
-	 * @param mixed $input Raw input.
+	 * @param mixed $input Raw.
 	 * @return array<string, mixed>
 	 */
 	public function sanitize( $input ) {
@@ -105,44 +80,82 @@ class F2F_AI_Chatbot_Admin {
 		$input    = is_array( $input ) ? $input : array();
 		$out      = $defaults;
 
-		$out['enabled']         = empty( $input['enabled'] ) ? '0' : '1';
-		$out['api_key']         = isset( $input['api_key'] ) ? sanitize_text_field( $input['api_key'] ) : '';
-		$out['model']           = isset( $input['model'] ) ? sanitize_text_field( $input['model'] ) : $defaults['model'];
-		$out['system_prompt']   = isset( $input['system_prompt'] ) ? sanitize_textarea_field( $input['system_prompt'] ) : $defaults['system_prompt'];
-		$out['welcome_message'] = isset( $input['welcome_message'] ) ? sanitize_textarea_field( $input['welcome_message'] ) : $defaults['welcome_message'];
-		$out['bot_name']        = isset( $input['bot_name'] ) ? sanitize_text_field( $input['bot_name'] ) : $defaults['bot_name'];
-		$out['position']        = ( isset( $input['position'] ) && 'left' === $input['position'] ) ? 'left' : 'right';
-		$out['rate_limit']      = isset( $input['rate_limit'] ) ? max( 1, min( 200, absint( $input['rate_limit'] ) ) ) : (int) $defaults['rate_limit'];
-		$out['max_tokens']      = isset( $input['max_tokens'] ) ? max( 50, min( 4000, absint( $input['max_tokens'] ) ) ) : (int) $defaults['max_tokens'];
-		$out['temperature']     = isset( $input['temperature'] ) ? max( 0, min( 2, (float) $input['temperature'] ) ) : (float) $defaults['temperature'];
+		$text_keys = array(
+			'model',
+			'bot_name',
+			'avatar_url',
+			'discover_headline',
+			'discover_subtext',
+			'input_placeholder',
+			'featured_label',
+			'featured_subtitle',
+			'featured_icon',
+			'service_1_label',
+			'service_1_icon',
+			'service_2_label',
+			'service_2_icon',
+			'service_3_label',
+			'service_3_icon',
+			'service_4_label',
+			'service_4_icon',
+			'divider_text',
+			'lead_headline',
+			'lead_subtext',
+			'lead_btn',
+			'lead_cancel',
+			'whatsapp_phone',
+			'whatsapp_message',
+			'whatsapp_btn_label',
+			'chat_welcome',
+		);
+
+		$out['enabled'] = empty( $input['enabled'] ) ? '0' : '1';
+		$out['api_key'] = isset( $input['api_key'] ) ? sanitize_text_field( $input['api_key'] ) : '';
+		if ( '' === $out['api_key'] && ! empty( $current['api_key'] ) && empty( $input['api_key_clear'] ) ) {
+			$out['api_key'] = $current['api_key'];
+		}
+
+		$out['system_prompt'] = isset( $input['system_prompt'] ) ? sanitize_textarea_field( $input['system_prompt'] ) : $defaults['system_prompt'];
+		$out['position']      = ( isset( $input['position'] ) && 'left' === $input['position'] ) ? 'left' : 'right';
+		$out['avatar_id']     = isset( $input['avatar_id'] ) ? absint( $input['avatar_id'] ) : 0;
+		$out['rate_limit']    = isset( $input['rate_limit'] ) ? max( 1, min( 200, absint( $input['rate_limit'] ) ) ) : (int) $defaults['rate_limit'];
+		$out['max_tokens']    = isset( $input['max_tokens'] ) ? max( 50, min( 4000, absint( $input['max_tokens'] ) ) ) : (int) $defaults['max_tokens'];
+		$out['temperature']   = isset( $input['temperature'] ) ? max( 0, min( 2, (float) $input['temperature'] ) ) : (float) $defaults['temperature'];
 
 		$color = isset( $input['primary_color'] ) ? sanitize_hex_color( $input['primary_color'] ) : '';
 		$out['primary_color'] = $color ? $color : $defaults['primary_color'];
 
-		// Keep existing key if the password field was left blank (browser may clear it).
-		if ( '' === $out['api_key'] && ! empty( $current['api_key'] ) && empty( $input['api_key_clear'] ) ) {
-			$out['api_key'] = $current['api_key'];
+		foreach ( $text_keys as $key ) {
+			if ( isset( $input[ $key ] ) ) {
+				$out[ $key ] = sanitize_text_field( $input[ $key ] );
+			}
+		}
+
+		// Longer text fields already handled except discover_subtext / lead_subtext / chat_welcome / whatsapp_message.
+		foreach ( array( 'discover_subtext', 'lead_subtext', 'chat_welcome', 'whatsapp_message' ) as $ta ) {
+			if ( isset( $input[ $ta ] ) ) {
+				$out[ $ta ] = sanitize_textarea_field( $input[ $ta ] );
+			}
 		}
 
 		return $out;
 	}
 
 	/**
-	 * Admin CSS.
-	 *
-	 * @param string $hook Current admin page hook.
+	 * @param string $hook Hook.
 	 */
 	public function enqueue_assets( $hook ) {
 		if ( 'settings_page_f2f-ai-chatbot' !== $hook ) {
 			return;
 		}
+		wp_enqueue_media();
+		wp_enqueue_style( 'wp-color-picker' );
 		wp_enqueue_style(
 			'f2f-ai-chatbot-admin',
 			F2F_AI_CHATBOT_URL . 'assets/css/admin.css',
 			array(),
 			F2F_AI_CHATBOT_VERSION
 		);
-		wp_enqueue_style( 'wp-color-picker' );
 		wp_enqueue_script(
 			'f2f-ai-chatbot-admin',
 			F2F_AI_CHATBOT_URL . 'assets/js/admin.js',
@@ -153,68 +166,225 @@ class F2F_AI_Chatbot_Admin {
 	}
 
 	/**
-	 * Render settings page.
+	 * Field helper.
+	 *
+	 * @param string               $key Key.
+	 * @param array<string, mixed> $s   Settings.
+	 * @param string               $type Input type.
+	 * @param array<string, mixed> $attrs Extra attrs.
 	 */
+	private function field( $key, $s, $type = 'text', $attrs = array() ) {
+		$name  = self::OPTION . '[' . $key . ']';
+		$id    = 'f2f_' . $key;
+		$value = isset( $s[ $key ] ) ? $s[ $key ] : '';
+		$class = isset( $attrs['class'] ) ? $attrs['class'] : 'regular-text';
+		if ( 'textarea' === $type ) {
+			$rows = isset( $attrs['rows'] ) ? (int) $attrs['rows'] : 3;
+			printf(
+				'<textarea id="%1$s" name="%2$s" rows="%3$d" class="%4$s">%5$s</textarea>',
+				esc_attr( $id ),
+				esc_attr( $name ),
+				$rows,
+				esc_attr( $class ),
+				esc_textarea( (string) $value )
+			);
+			return;
+		}
+		printf(
+			'<input type="%1$s" id="%2$s" name="%3$s" value="%4$s" class="%5$s" %6$s />',
+			esc_attr( $type ),
+			esc_attr( $id ),
+			esc_attr( $name ),
+			esc_attr( (string) $value ),
+			esc_attr( $class ),
+			isset( $attrs['extra'] ) ? $attrs['extra'] : ''
+		);
+	}
+
 	public function render_page() {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
-
-		$s     = f2f_ai_chatbot_get_settings();
+		$s      = f2f_ai_chatbot_get_settings();
+		$opt    = self::OPTION;
 		$models = array(
-			'gpt-4o-mini'   => 'GPT-4o Mini (önerilen)',
+			'gpt-4o-mini'   => 'GPT-4o Mini',
 			'gpt-4o'        => 'GPT-4o',
 			'gpt-4.1-mini'  => 'GPT-4.1 Mini',
 			'gpt-4.1'       => 'GPT-4.1',
 			'gpt-3.5-turbo' => 'GPT-3.5 Turbo',
 		);
+		$icons = array(
+			'layout'  => 'Layout (web)',
+			'sparkle' => 'Sparkle',
+			'globe'   => 'Globe',
+			'bag'     => 'Shopping bag',
+			'code'    => 'Code',
+			'server'  => 'Server',
+			'chat'    => 'Chat',
+			'star'    => 'Star',
+		);
+		$avatar = f2f_ai_chatbot_avatar_url( $s );
 		?>
 		<div class="wrap f2f-ai-admin">
-			<h1><?php echo esc_html__( 'F2F AI Chatbot', 'f2f-ai-chatbot' ); ?></h1>
-			<p class="description">
-				<?php echo esc_html__( 'OpenAI bağlı floating chatbot widget. API anahtarınız sunucuda saklanır; ziyaretçi tarayıcısına gönderilmez.', 'f2f-ai-chatbot' ); ?>
-			</p>
+			<h1><?php echo esc_html__( 'F2F AI Chatbot — AI Proje Ajanı', 'f2f-ai-chatbot' ); ?></h1>
+			<p class="description"><?php echo esc_html__( 'Keşif ekranı → iletişim formu → OpenAI sohbeti. Profil, başlık ve 4 hizmet kutusu buradan yönetilir.', 'f2f-ai-chatbot' ); ?></p>
 
 			<form method="post" action="options.php" class="f2f-ai-admin__form">
 				<?php settings_fields( 'f2f_ai_chatbot_group' ); ?>
 
+				<h2><?php echo esc_html__( 'Genel', 'f2f-ai-chatbot' ); ?></h2>
 				<table class="form-table" role="presentation">
 					<tr>
-						<th scope="row"><?php echo esc_html__( 'Widget aktif', 'f2f-ai-chatbot' ); ?></th>
+						<th><?php echo esc_html__( 'Widget aktif', 'f2f-ai-chatbot' ); ?></th>
 						<td>
 							<label>
-								<input type="checkbox" name="<?php echo esc_attr( self::OPTION ); ?>[enabled]" value="1" <?php checked( $s['enabled'], '1' ); ?> />
-								<?php echo esc_html__( 'Sitede chatbot balonunu göster', 'f2f-ai-chatbot' ); ?>
+								<input type="checkbox" name="<?php echo esc_attr( $opt ); ?>[enabled]" value="1" <?php checked( $s['enabled'], '1' ); ?> />
+								<?php echo esc_html__( 'Sitede göster', 'f2f-ai-chatbot' ); ?>
 							</label>
 						</td>
 					</tr>
 					<tr>
-						<th scope="row"><label for="f2f_api_key"><?php echo esc_html__( 'OpenAI API Anahtarı', 'f2f-ai-chatbot' ); ?></label></th>
+						<th><label for="f2f_bot_name"><?php echo esc_html__( 'Chatbot başlığı', 'f2f-ai-chatbot' ); ?></label></th>
+						<td><?php $this->field( 'bot_name', $s ); ?></td>
+					</tr>
+					<tr>
+						<th><?php echo esc_html__( 'Profil fotoğrafı', 'f2f-ai-chatbot' ); ?></th>
 						<td>
-							<input
-								type="password"
-								class="regular-text"
-								id="f2f_api_key"
-								name="<?php echo esc_attr( self::OPTION ); ?>[api_key]"
-								value=""
-								placeholder="<?php echo esc_attr( $s['api_key'] ? '••••••••••••••••' : 'sk-...' ); ?>"
-								autocomplete="off"
-							/>
-							<?php if ( ! empty( $s['api_key'] ) ) : ?>
-								<p class="description"><?php echo esc_html__( 'Anahtar kayıtlı. Değiştirmek için yeni anahtar yazın; silmek için aşağıdaki kutuyu işaretleyin.', 'f2f-ai-chatbot' ); ?></p>
-								<label>
-									<input type="checkbox" name="<?php echo esc_attr( self::OPTION ); ?>[api_key_clear]" value="1" />
-									<?php echo esc_html__( 'Kayıtlı API anahtarını sil', 'f2f-ai-chatbot' ); ?>
+							<div class="f2f-avatar-picker">
+								<img src="<?php echo esc_url( $avatar ); ?>" alt="" class="f2f-avatar-preview" id="f2f_avatar_preview" width="48" height="48" />
+								<input type="hidden" name="<?php echo esc_attr( $opt ); ?>[avatar_id]" id="f2f_avatar_id" value="<?php echo esc_attr( (string) $s['avatar_id'] ); ?>" />
+								<button type="button" class="button" id="f2f_avatar_upload"><?php echo esc_html__( 'Medya kütüphanesinden seç', 'f2f-ai-chatbot' ); ?></button>
+								<button type="button" class="button" id="f2f_avatar_clear"><?php echo esc_html__( 'Varsayılana dön', 'f2f-ai-chatbot' ); ?></button>
+							</div>
+							<p class="description"><?php echo esc_html__( 'Veya doğrudan URL:', 'f2f-ai-chatbot' ); ?></p>
+							<?php $this->field( 'avatar_url', $s, 'url', array( 'class' => 'large-text' ) ); ?>
+						</td>
+					</tr>
+					<tr>
+						<th><label for="f2f_primary_color"><?php echo esc_html__( 'Ana renk', 'f2f-ai-chatbot' ); ?></label></th>
+						<td><input type="text" class="f2f-color-picker" id="f2f_primary_color" name="<?php echo esc_attr( $opt ); ?>[primary_color]" value="<?php echo esc_attr( $s['primary_color'] ); ?>" data-default-color="#22C55E" /></td>
+					</tr>
+					<tr>
+						<th><?php echo esc_html__( 'Konum', 'f2f-ai-chatbot' ); ?></th>
+						<td>
+							<label style="margin-right:12px;"><input type="radio" name="<?php echo esc_attr( $opt ); ?>[position]" value="right" <?php checked( $s['position'], 'right' ); ?> /> <?php echo esc_html__( 'Sağ', 'f2f-ai-chatbot' ); ?></label>
+							<label><input type="radio" name="<?php echo esc_attr( $opt ); ?>[position]" value="left" <?php checked( $s['position'], 'left' ); ?> /> <?php echo esc_html__( 'Sol', 'f2f-ai-chatbot' ); ?></label>
+						</td>
+					</tr>
+				</table>
+
+				<h2><?php echo esc_html__( 'Keşif ekranı', 'f2f-ai-chatbot' ); ?></h2>
+				<table class="form-table" role="presentation">
+					<tr>
+						<th><label for="f2f_discover_headline"><?php echo esc_html__( 'Başlık', 'f2f-ai-chatbot' ); ?></label></th>
+						<td><?php $this->field( 'discover_headline', $s, 'text', array( 'class' => 'large-text' ) ); ?></td>
+					</tr>
+					<tr>
+						<th><label for="f2f_discover_subtext"><?php echo esc_html__( 'Alt metin', 'f2f-ai-chatbot' ); ?></label></th>
+						<td><?php $this->field( 'discover_subtext', $s, 'textarea', array( 'rows' => 3, 'class' => 'large-text' ) ); ?></td>
+					</tr>
+					<tr>
+						<th><label for="f2f_input_placeholder"><?php echo esc_html__( 'Yazma alanı placeholder', 'f2f-ai-chatbot' ); ?></label></th>
+						<td><?php $this->field( 'input_placeholder', $s, 'text', array( 'class' => 'large-text' ) ); ?></td>
+					</tr>
+					<tr>
+						<th><label for="f2f_divider_text"><?php echo esc_html__( 'Ayırıcı metin', 'f2f-ai-chatbot' ); ?></label></th>
+						<td><?php $this->field( 'divider_text', $s ); ?></td>
+					</tr>
+					<tr>
+						<th><?php echo esc_html__( 'Öne çıkan kutu', 'f2f-ai-chatbot' ); ?></th>
+						<td class="f2f-service-row">
+							<label><?php echo esc_html__( 'Başlık', 'f2f-ai-chatbot' ); ?> <?php $this->field( 'featured_label', $s ); ?></label>
+							<label><?php echo esc_html__( 'Alt yazı', 'f2f-ai-chatbot' ); ?> <?php $this->field( 'featured_subtitle', $s ); ?></label>
+							<label><?php echo esc_html__( 'İkon', 'f2f-ai-chatbot' ); ?>
+								<select name="<?php echo esc_attr( $opt ); ?>[featured_icon]">
+									<?php foreach ( $icons as $val => $lab ) : ?>
+										<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $s['featured_icon'], $val ); ?>><?php echo esc_html( $lab ); ?></option>
+									<?php endforeach; ?>
+								</select>
+							</label>
+						</td>
+					</tr>
+					<?php for ( $i = 1; $i <= 4; $i++ ) : ?>
+						<tr>
+							<th><?php echo esc_html( sprintf( /* translators: %d service number */ __( 'Hizmet kutusu %d', 'f2f-ai-chatbot' ), $i ) ); ?></th>
+							<td class="f2f-service-row">
+								<label><?php echo esc_html__( 'Başlık', 'f2f-ai-chatbot' ); ?> <?php $this->field( 'service_' . $i . '_label', $s ); ?></label>
+								<label><?php echo esc_html__( 'İkon', 'f2f-ai-chatbot' ); ?>
+									<select name="<?php echo esc_attr( $opt ); ?>[service_<?php echo esc_attr( (string) $i ); ?>_icon]">
+										<?php foreach ( $icons as $val => $lab ) : ?>
+											<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $s[ 'service_' . $i . '_icon' ], $val ); ?>><?php echo esc_html( $lab ); ?></option>
+										<?php endforeach; ?>
+									</select>
 								</label>
-							<?php else : ?>
-								<p class="description"><?php echo esc_html__( 'platform.openai.com üzerinden alınır. Anahtar asla frontend’e çıkmaz.', 'f2f-ai-chatbot' ); ?></p>
+							</td>
+						</tr>
+					<?php endfor; ?>
+				</table>
+
+				<h2><?php echo esc_html__( 'İletişim formu (lead)', 'f2f-ai-chatbot' ); ?></h2>
+				<table class="form-table" role="presentation">
+					<tr>
+						<th><label for="f2f_lead_headline"><?php echo esc_html__( 'Başlık', 'f2f-ai-chatbot' ); ?></label></th>
+						<td><?php $this->field( 'lead_headline', $s ); ?></td>
+					</tr>
+					<tr>
+						<th><label for="f2f_lead_subtext"><?php echo esc_html__( 'Açıklama', 'f2f-ai-chatbot' ); ?></label></th>
+						<td><?php $this->field( 'lead_subtext', $s, 'textarea', array( 'rows' => 3, 'class' => 'large-text' ) ); ?></td>
+					</tr>
+					<tr>
+						<th><label for="f2f_lead_btn"><?php echo esc_html__( 'Devam butonu', 'f2f-ai-chatbot' ); ?></label></th>
+						<td><?php $this->field( 'lead_btn', $s ); ?></td>
+					</tr>
+					<tr>
+						<th><label for="f2f_lead_cancel"><?php echo esc_html__( 'Vazgeç metni', 'f2f-ai-chatbot' ); ?></label></th>
+						<td><?php $this->field( 'lead_cancel', $s ); ?></td>
+					</tr>
+					<tr>
+						<th><label for="f2f_chat_welcome"><?php echo esc_html__( 'Sohbet karşılama', 'f2f-ai-chatbot' ); ?></label></th>
+						<td>
+							<?php $this->field( 'chat_welcome', $s, 'textarea', array( 'rows' => 2, 'class' => 'large-text' ) ); ?>
+							<p class="description"><?php echo esc_html__( 'Değişkenler: {ad} {soyad} {hizmet}', 'f2f-ai-chatbot' ); ?></p>
+						</td>
+					</tr>
+				</table>
+
+				<h2><?php echo esc_html__( 'WhatsApp — Canlı Görüşme', 'f2f-ai-chatbot' ); ?></h2>
+				<table class="form-table" role="presentation">
+					<tr>
+						<th><label for="f2f_whatsapp_phone"><?php echo esc_html__( 'Telefon (ülke kodu ile)', 'f2f-ai-chatbot' ); ?></label></th>
+						<td>
+							<?php $this->field( 'whatsapp_phone', $s ); ?>
+							<p class="description"><?php echo esc_html__( 'Örn: 905499009310 — sohbet ekranındaki buton bu numaraya yönlendirir.', 'f2f-ai-chatbot' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th><label for="f2f_whatsapp_btn_label"><?php echo esc_html__( 'Buton yazısı', 'f2f-ai-chatbot' ); ?></label></th>
+						<td><?php $this->field( 'whatsapp_btn_label', $s ); ?></td>
+					</tr>
+					<tr>
+						<th><label for="f2f_whatsapp_message"><?php echo esc_html__( 'Önceden dolu mesaj', 'f2f-ai-chatbot' ); ?></label></th>
+						<td><?php $this->field( 'whatsapp_message', $s, 'textarea', array( 'rows' => 2, 'class' => 'large-text' ) ); ?></td>
+					</tr>
+				</table>
+
+				<h2><?php echo esc_html__( 'OpenAI', 'f2f-ai-chatbot' ); ?></h2>
+				<table class="form-table" role="presentation">
+					<tr>
+						<th><label for="f2f_api_key"><?php echo esc_html__( 'API Anahtarı', 'f2f-ai-chatbot' ); ?></label></th>
+						<td>
+							<input type="password" class="regular-text" id="f2f_api_key" name="<?php echo esc_attr( $opt ); ?>[api_key]" value="" placeholder="<?php echo esc_attr( $s['api_key'] ? '••••••••••••••••' : 'sk-...' ); ?>" autocomplete="off" />
+							<?php if ( ! empty( $s['api_key'] ) ) : ?>
+								<p class="description"><?php echo esc_html__( 'Anahtar kayıtlı. Değiştirmek için yeni yazın.', 'f2f-ai-chatbot' ); ?></p>
+								<label><input type="checkbox" name="<?php echo esc_attr( $opt ); ?>[api_key_clear]" value="1" /> <?php echo esc_html__( 'Anahtarı sil', 'f2f-ai-chatbot' ); ?></label>
 							<?php endif; ?>
 						</td>
 					</tr>
 					<tr>
-						<th scope="row"><label for="f2f_model"><?php echo esc_html__( 'Model', 'f2f-ai-chatbot' ); ?></label></th>
+						<th><label for="f2f_model"><?php echo esc_html__( 'Model', 'f2f-ai-chatbot' ); ?></label></th>
 						<td>
-							<select id="f2f_model" name="<?php echo esc_attr( self::OPTION ); ?>[model]">
+							<select id="f2f_model" name="<?php echo esc_attr( $opt ); ?>[model]">
 								<?php foreach ( $models as $value => $label ) : ?>
 									<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $s['model'], $value ); ?>><?php echo esc_html( $label ); ?></option>
 								<?php endforeach; ?>
@@ -222,70 +392,20 @@ class F2F_AI_Chatbot_Admin {
 						</td>
 					</tr>
 					<tr>
-						<th scope="row"><label for="f2f_system_prompt"><?php echo esc_html__( 'Sistem promptu', 'f2f-ai-chatbot' ); ?></label></th>
-						<td>
-							<textarea
-								id="f2f_system_prompt"
-								name="<?php echo esc_attr( self::OPTION ); ?>[system_prompt]"
-								rows="6"
-								class="large-text"
-							><?php echo esc_textarea( $s['system_prompt'] ); ?></textarea>
-							<p class="description"><?php echo esc_html__( 'Asistanın kimliği, dil ve sınırları. platform.f2fbilisim.com tarzı kurumsal yanıtlar için burayı özelleştirin.', 'f2f-ai-chatbot' ); ?></p>
-						</td>
+						<th><label for="f2f_system_prompt"><?php echo esc_html__( 'Sistem promptu', 'f2f-ai-chatbot' ); ?></label></th>
+						<td><?php $this->field( 'system_prompt', $s, 'textarea', array( 'rows' => 6, 'class' => 'large-text' ) ); ?></td>
 					</tr>
 					<tr>
-						<th scope="row"><label for="f2f_welcome"><?php echo esc_html__( 'Karşılama mesajı', 'f2f-ai-chatbot' ); ?></label></th>
-						<td>
-							<textarea
-								id="f2f_welcome"
-								name="<?php echo esc_attr( self::OPTION ); ?>[welcome_message]"
-								rows="2"
-								class="large-text"
-							><?php echo esc_textarea( $s['welcome_message'] ); ?></textarea>
-						</td>
+						<th><label for="f2f_rate_limit"><?php echo esc_html__( 'Saatlik istek limiti', 'f2f-ai-chatbot' ); ?></label></th>
+						<td><?php $this->field( 'rate_limit', $s, 'number', array( 'extra' => 'min="1" max="200"' ) ); ?></td>
 					</tr>
 					<tr>
-						<th scope="row"><label for="f2f_bot_name"><?php echo esc_html__( 'Bot adı', 'f2f-ai-chatbot' ); ?></label></th>
-						<td>
-							<input type="text" class="regular-text" id="f2f_bot_name" name="<?php echo esc_attr( self::OPTION ); ?>[bot_name]" value="<?php echo esc_attr( $s['bot_name'] ); ?>" />
-						</td>
+						<th><label for="f2f_max_tokens"><?php echo esc_html__( 'Max tokens', 'f2f-ai-chatbot' ); ?></label></th>
+						<td><?php $this->field( 'max_tokens', $s, 'number', array( 'extra' => 'min="50" max="4000"' ) ); ?></td>
 					</tr>
 					<tr>
-						<th scope="row"><label for="f2f_primary_color"><?php echo esc_html__( 'Ana renk', 'f2f-ai-chatbot' ); ?></label></th>
-						<td>
-							<input type="text" class="f2f-color-picker" id="f2f_primary_color" name="<?php echo esc_attr( self::OPTION ); ?>[primary_color]" value="<?php echo esc_attr( $s['primary_color'] ); ?>" data-default-color="#0B6E4F" />
-						</td>
-					</tr>
-					<tr>
-						<th scope="row"><?php echo esc_html__( 'Konum', 'f2f-ai-chatbot' ); ?></th>
-						<td>
-							<label style="margin-right:12px;">
-								<input type="radio" name="<?php echo esc_attr( self::OPTION ); ?>[position]" value="right" <?php checked( $s['position'], 'right' ); ?> />
-								<?php echo esc_html__( 'Sağ alt', 'f2f-ai-chatbot' ); ?>
-							</label>
-							<label>
-								<input type="radio" name="<?php echo esc_attr( self::OPTION ); ?>[position]" value="left" <?php checked( $s['position'], 'left' ); ?> />
-								<?php echo esc_html__( 'Sol alt', 'f2f-ai-chatbot' ); ?>
-							</label>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row"><label for="f2f_rate_limit"><?php echo esc_html__( 'Saatlik istek limiti (IP)', 'f2f-ai-chatbot' ); ?></label></th>
-						<td>
-							<input type="number" min="1" max="200" id="f2f_rate_limit" name="<?php echo esc_attr( self::OPTION ); ?>[rate_limit]" value="<?php echo esc_attr( (string) $s['rate_limit'] ); ?>" />
-						</td>
-					</tr>
-					<tr>
-						<th scope="row"><label for="f2f_max_tokens"><?php echo esc_html__( 'Max tokens', 'f2f-ai-chatbot' ); ?></label></th>
-						<td>
-							<input type="number" min="50" max="4000" id="f2f_max_tokens" name="<?php echo esc_attr( self::OPTION ); ?>[max_tokens]" value="<?php echo esc_attr( (string) $s['max_tokens'] ); ?>" />
-						</td>
-					</tr>
-					<tr>
-						<th scope="row"><label for="f2f_temperature"><?php echo esc_html__( 'Temperature', 'f2f-ai-chatbot' ); ?></label></th>
-						<td>
-							<input type="number" step="0.1" min="0" max="2" id="f2f_temperature" name="<?php echo esc_attr( self::OPTION ); ?>[temperature]" value="<?php echo esc_attr( (string) $s['temperature'] ); ?>" />
-						</td>
+						<th><label for="f2f_temperature"><?php echo esc_html__( 'Temperature', 'f2f-ai-chatbot' ); ?></label></th>
+						<td><?php $this->field( 'temperature', $s, 'number', array( 'extra' => 'step="0.1" min="0" max="2"' ) ); ?></td>
 					</tr>
 				</table>
 

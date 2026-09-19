@@ -1,74 +1,51 @@
-# F2F AI Chatbot
+# F2F AI Chatbot — AI Proje Ajanı
 
-WordPress siteleri için **OpenAI bağlı floating chatbot widget** eklentisi.  
-`platform.f2fbilisim.com` tarzı kurumsal asistan deneyimini herhangi bir WordPress sitesine ekler.
+WordPress floating chatbot: **keşif ekranı → lead formu → OpenAI sohbeti**, WhatsApp canlı görüşme butonu.
 
-## Özellikler
+Ekranlar, gönderdiğiniz mockup’larla hizalıdır. Profil fotoğrafı, başlık, öne çıkan kutu ve 4 hizmet kutusu eklenti panelinden düzenlenir.
 
-- Floating sohbet balonu (sağ/sol alt)
-- OpenAI Chat Completions (`gpt-4o-mini` varsayılan)
-- Admin paneli: API anahtarı, model, sistem promptu, karşılama mesajı, renk, rate limit
-- API anahtarı yalnızca sunucuda saklanır (frontend’e çıkmaz)
-- REST endpoint + WP nonce + IP başına saatlik istek limiti
-- Türkçe arayüz (F2F Bilişim varsayılan metinleri)
+## Akış
+
+1. Ziyaretçi widget’ı açar → hizmet seçer **veya** yazıp Enter’a basar  
+2. **Sizi tanıyalım** formu (Ad, Soyad, Telefon, E-posta)  
+3. Formdan sonra OpenAI sohbeti başlar  
+4. Sohbet sırasında gönder çubuğunun altında **Canlı Görüşmeye Başla** → paneldeki WhatsApp numarasına yönlendirir  
 
 ## WordPress kurulumu
 
-1. `f2f-ai-chatbot/` klasörünü `wp-content/plugins/f2f-ai-chatbot/` olarak kopyalayın  
-   (veya klasörü zipleyip **Eklentiler → Yeni ekle → Yükle** ile yükleyin).
-2. **Eklentiler** ekranından **F2F AI Chatbot**’u etkinleştirin.
-3. **Ayarlar → F2F AI Chatbot** sayfasından OpenAI API anahtarınızı girin.
-4. Sistem promptunu markanıza göre düzenleyin; kaydedin.
-5. Widget tüm public sayfalarda otomatik görünür.
+1. `f2f-ai-chatbot/` klasörünü `wp-content/plugins/` altına kopyalayın (veya zip yükleyin)  
+2. Etkinleştirin → **Ayarlar → F2F AI Chatbot**  
+3. Ayarlayın:
+   - Profil fotoğrafı + chatbot başlığı  
+   - Keşif metinleri, öne çıkan kutu, 4 hizmet  
+   - Lead formu metinleri  
+   - WhatsApp telefon (örn. `905499009310`)  
+   - OpenAI API anahtarı + sistem promptu  
+4. Lead’ler **Ayarlar → AI Leadler** altında listelenir  
 
-### REST uçları
-
-| Method | Path | Açıklama |
-|--------|------|----------|
-| `GET`  | `/wp-json/f2f-ai-chatbot/v1/config` | Public config (secret yok) |
-| `POST` | `/wp-json/f2f-ai-chatbot/v1/chat`   | Sohbet turu (`message`, `history`) |
-
-`POST /chat` için `X-WP-Nonce` (wp_rest) zorunludur.
-
-## Yerel widget demosu
-
-Bu ortamda WordPress yok; aynı widget arayüzünü Node ile önizleyebilirsiniz:
+## Demo (bu ortam)
 
 ```bash
 cd demo
 npm start
+# http://127.0.0.1:43145
 ```
 
-Tarayıcı: [http://127.0.0.1:43145](http://127.0.0.1:43145)
-
-Canlı OpenAI yanıtları için:
+Canlı OpenAI:
 
 ```bash
 export OPENAI_API_KEY=sk-...
-export OPENAI_MODEL=gpt-4o-mini   # isteğe bağlı
 npm start
 ```
 
-Anahtar yoksa demo, F2F hizmetlerine uygun mock yanıtlar döner.
+## REST
 
-## Dizin yapısı
-
-```
-f2f-ai-chatbot/          ← WordPress eklentisi (zip/upload)
-  f2f-ai-chatbot.php
-  includes/
-  assets/
-demo/                    ← Önizleme sunucusu
-  server.js
-  public/
-```
-
-## Güvenlik notları
-
-- API anahtarını asla tema / JS içine yazmayın.
-- Rate limit varsayılanı: IP başına 20 istek / saat (ayarlardan değiştirilebilir).
-- Üretimde mümkünse ek WAF / Cloudflare rate limit kullanın.
+| Method | Path | Açıklama |
+|--------|------|----------|
+| GET | `/wp-json/f2f-ai-chatbot/v1/config` | Public config |
+| POST | `/wp-json/f2f-ai-chatbot/v1/lead` | Lead kaydı |
+| POST | `/wp-json/f2f-ai-chatbot/v1/chat` | OpenAI sohbet |
 
 ## Lisans
 
-GPL-2.0-or-later (WordPress eklenti uyumu)
+GPL-2.0-or-later
