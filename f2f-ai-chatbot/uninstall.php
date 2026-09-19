@@ -11,6 +11,8 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 
 delete_option( 'f2f_ai_chatbot_settings' );
 delete_option( 'f2f_ai_chatbot_knowledge' );
+delete_option( 'f2f_ai_license_meta' );
+delete_transient( 'f2f_ai_license_status' );
 
 global $wpdb;
 $wpdb->query(

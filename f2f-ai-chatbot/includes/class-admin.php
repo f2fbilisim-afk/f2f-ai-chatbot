@@ -152,6 +152,12 @@ class F2F_AI_Chatbot_Admin {
 			}
 		}
 
+		// Normalize + activate premium (1 year) when a pool key is saved.
+		if ( isset( $out['license_key'] ) && class_exists( 'F2F_AI_Chatbot_License' ) ) {
+			$out['license_key'] = F2F_AI_Chatbot_License::normalize( $out['license_key'] );
+			F2F_AI_Chatbot_License::activate( $out['license_key'] );
+		}
+
 		return $out;
 	}
 
@@ -249,7 +255,7 @@ class F2F_AI_Chatbot_Admin {
 		?>
 		<div class="wrap f2f-ai-admin">
 			<h1><?php echo esc_html__( 'F2F AI Chatbot', 'f2f-ai-chatbot' ); ?></h1>
-			<p class="description"><?php echo esc_html__( 'Müşteri yalnızca marka, hizmet kutuları ve lisans anahtarını yönetir. OpenAI anahtarı / token / model F2F platformunda kalır — kontör bitince sohbet durur.', 'f2f-ai-chatbot' ); ?></p>
+			<p class="description"><?php echo esc_html__( 'Lisans anahtarı boş gelir. Satın aldığınız F2F anahtarını girince 1 yıl premium açılır. OpenAI API anahtarı bu panelde yoktur — F2F developer hesabından yönetilir.', 'f2f-ai-chatbot' ); ?></p>
 
 			<form method="post" action="options.php" class="f2f-ai-admin__form">
 				<?php settings_fields( 'f2f_ai_chatbot_group' ); ?>
@@ -459,15 +465,14 @@ class F2F_AI_Chatbot_Admin {
 					</tr>
 				</table>
 
-				<h2><?php echo esc_html__( 'F2F Lisans & Kontör', 'f2f-ai-chatbot' ); ?></h2>
+				<h2><?php echo esc_html__( 'F2F AI Chatbot Lisans', 'f2f-ai-chatbot' ); ?></h2>
 				<table class="form-table" role="presentation">
 					<tr>
 						<th><label for="f2f_license_key"><?php echo esc_html__( 'Lisans anahtarı', 'f2f-ai-chatbot' ); ?></label></th>
 						<td>
-							<input type="password" class="regular-text" id="f2f_license_key" name="<?php echo esc_attr( $opt ); ?>[license_key]" value="<?php echo esc_attr( (string) $s['license_key'] ); ?>" autocomplete="off" placeholder="f2f_lic_••••" />
+							<input type="text" class="regular-text" id="f2f_license_key" name="<?php echo esc_attr( $opt ); ?>[license_key]" value="<?php echo esc_attr( (string) $s['license_key'] ); ?>" autocomplete="off" placeholder="F2F-XXXX-XXXX-XXXX-XXXX" spellcheck="false" />
 							<p class="description">
-								<?php echo esc_html__( 'platform.f2fbilisim.com panelinden alınır. OpenAI API anahtarı bu ekranda yoktur ve müşteri tarafından girilemez.', 'f2f-ai-chatbot' ); ?>
-								<a href="https://platform.f2fbilisim.com" target="_blank" rel="noopener noreferrer"><?php echo esc_html__( 'Kontör yükle →', 'f2f-ai-chatbot' ); ?></a>
+								<?php echo esc_html__( 'Alan boş gelir. Satın alma sonrası F2F’nin verdiği anahtarı yapıştırın. Geçerli anahtar kaydedilince 1 yıl premium açılır.', 'f2f-ai-chatbot' ); ?>
 							</p>
 						</td>
 					</tr>
@@ -475,14 +480,17 @@ class F2F_AI_Chatbot_Admin {
 						<th><?php echo esc_html__( 'Durum', 'f2f-ai-chatbot' ); ?></th>
 						<td>
 							<?php
-							$status  = isset( $lic['status'] ) ? (string) $lic['status'] : 'missing';
-							$credits = array_key_exists( 'credits', $lic ) ? $lic['credits'] : null;
-							$msg     = isset( $lic['message'] ) ? (string) $lic['message'] : '';
+							$status    = isset( $lic['status'] ) ? (string) $lic['status'] : 'missing';
+							$msg       = isset( $lic['message'] ) ? (string) $lic['message'] : '';
+							$days_left = isset( $lic['days_left'] ) ? $lic['days_left'] : null;
+							$premium   = ! empty( $lic['premium'] );
 							?>
 							<p style="margin:0 0 6px;">
-								<strong><?php echo esc_html( strtoupper( $status ) ); ?></strong>
-								<?php if ( null !== $credits ) : ?>
-									— <?php echo esc_html( sprintf( /* translators: %d credits */ __( 'Kalan kontör: %d', 'f2f-ai-chatbot' ), (int) $credits ) ); ?>
+								<strong style="color:<?php echo $premium ? '#0b6e4f' : '#9b1c1c'; ?>;">
+									<?php echo esc_html( $premium ? 'PREMIUM' : strtoupper( $status ) ); ?>
+								</strong>
+								<?php if ( null !== $days_left && $premium ) : ?>
+									— <?php echo esc_html( sprintf( /* translators: %d days */ __( '%d gün kaldı', 'f2f-ai-chatbot' ), (int) $days_left ) ); ?>
 								<?php endif; ?>
 							</p>
 							<p class="description" style="margin:0;"><?php echo esc_html( $msg ); ?></p>

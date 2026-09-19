@@ -6,3 +6,5 @@ node_modules/
 artifacts/
 artifacts/*.zip
 demo/public/assets/*.zip
+licenses/*
+!licenses/README.md

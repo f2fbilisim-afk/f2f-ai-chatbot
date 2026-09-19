@@ -1,35 +1,34 @@
 # F2F AI Chatbot
 
-WordPress müşteri siteleri için **lisanslı** AI chatbot.
+WordPress için **lisanslı** AI chatbot (keşif → lead formu → sohbet + WhatsApp).
 
-OpenAI anahtarı müşteri panelinde **yoktur**. Sohbet `platform.f2fbilisim.com` üzerinden gider; kontör F2F’te düşülür.
+- Lisans alanı **boş** gelir; geçerli anahtar → **1 yıl Premium**  
+- OpenAI anahtarı müşteri panelinde **yok** — sizin developer API’niz (`wp-config`)  
+- Site içeriği taranır; sektör kutuları panelden ayarlanır  
 
-Detaylı satış modeli: [PRICING.md](./PRICING.md)
+Satış modeli: [PRICING.md](./PRICING.md)
 
-## Müşteri ne ayarlar?
-
-- Lisans anahtarı  
-- Profil, renk, konum, 4 hizmet kutusu  
-- Sektör notları + site tarama  
-- WhatsApp  
-
-## Müşteri ne ayarlayamaz?
-
-- OpenAI API key  
-- Model / temperature / max tokens  
-
-## Kurulum
+## Kurulum (müşteri)
 
 1. `f2f-ai-chatbot.zip` yükle → etkinleştir  
-2. **AI Chat Bot → Ayarlar** → lisans anahtarı  
-3. Hizmet kutularını sektöre göre doldur → **Siteyi tara**  
+2. **Ayarlar → F2F AI Chatbot Lisans** → satın aldığınız anahtarı yapıştırın  
+3. Hizmet kutularını doldurun → **Siteyi tara**  
 
-F2F geliştirme (master key):
+## Kurulum (F2F / sizin OpenAI’niz)
 
 ```php
 // wp-config.php
-define('F2F_AI_MASTER_OPENAI_KEY', 'sk-...');
+define('F2F_AI_MASTER_OPENAI_KEY', 'sk-proj-...');
 ```
+
+## 1000 lisans üretimi
+
+```bash
+node tools/generate-licenses.mjs
+```
+
+- Özel liste: `licenses/F2F-LICENSE-KEYS-PRIVATE.csv` (**paylaşmayın**)  
+- Hash havuzu eklentiye gömülü: `includes/license-pool.php`
 
 ## Demo
 

@@ -1,74 +1,77 @@
-# F2F AI Chatbot — Satış & kontör modeli
+# F2F AI Chatbot — Lisans & satış modeli
 
-## Neden müşteriye API key verilmez?
+## Fikir (uygulanan)
 
-Müşteri kendi OpenAI anahtarını girerse:
-
-- Token maliyeti **müşteriye** gider → siz komisyon alamazsınız  
-- Model / limit kontrolü elinizden çıkar  
-- Destek ve abuse yönetimi zorlaşır  
-
-Doğru model: **WordPress eklentisi = istemci**, **OpenAI anahtarı = F2F platformu**.
-
-## Mimari
+1. **Plugin ZIP ücretli** satılır.  
+2. Kurulumda **Lisans anahtarı alanı boş** gelir.  
+3. Satın alana 1000’lik havuzdan **bir anahtar** verilir.  
+4. Anahtar eşleşirse site **1 yıl Premium** olur.  
+5. OpenAI **sizin developer proje API’niz** ile çalışır; bakiyeniz bitince OpenAI’ye kontör yüklersiniz. Müşteri paneline API key **konmaz**.
 
 ```
-Ziyaretçi → WP Plugin → platform.f2fbilisim.com (lisans + kontör düşümü) → OpenAI
+Ziyaretçi → WP Plugin (premium lisans?) → F2F_AI_MASTER_OPENAI_KEY (wp-config)
+                                         → OpenAI (sizin hesabınız)
 ```
 
-Müşteri panelinde görünenler:
+## 1000 lisans anahtarı
 
-- Lisans anahtarı  
-- Marka / hizmet kutuları / WhatsApp / site tarama  
-- Kalan kontör (platformdan okunur)  
+Üretim:
 
-Görünmeyenler (F2F kontrolünde):
+```bash
+node tools/generate-licenses.mjs
+```
 
-- OpenAI API key  
-- Model, temperature, max tokens  
+Çıktılar:
 
-F2F kendi sitelerinde / geliştirmede: `wp-config.php` içine
+| Dosya | Kim görür? |
+|-------|------------|
+| `licenses/F2F-LICENSE-KEYS-PRIVATE.csv` | **Sadece siz** — satılacak anahtar listesi |
+| `f2f-ai-chatbot/includes/license-pool.php` | Eklentide (yalnızca SHA-256 hash’ler) |
+
+CSV sütunları: `index, license_key, status, sold_to, sold_at, notes`  
+Satışta `status=sold` yapıp müşteri adını yazın; aynı anahtarı iki kez vermeyin.
+
+Format: `F2F-XXXX-XXXX-XXXX-XXXX`
+
+## Müşteri paneli
+
+- **Lisans anahtarı** — boş placeholder  
+- Durum: `MISSING` / `INVALID` / `PREMIUM` / `EXPIRED`  
+- Premium’da kalan gün sayısı  
+
+OpenAI / model / token alanları **yok**.
+
+## Sizin kurulum (müşteri sitesi)
+
+`wp-config.php`:
 
 ```php
-define('F2F_AI_MASTER_OPENAI_KEY', 'sk-...');
-// isteğe bağlı:
-define('F2F_AI_PLATFORM_URL', 'https://platform.f2fbilisim.com');
-define('F2F_AI_MODEL', 'gpt-4o-mini');
+define('F2F_AI_MASTER_OPENAI_KEY', 'sk-proj-...'); // OpenAI developer proje API
+define('F2F_AI_MODEL', 'gpt-4o-mini'); // isteğe bağlı
+
+// Kendi test sitenizde lisans olmadan denemek için:
+// define('F2F_AI_ALLOW_MASTER_WITHOUT_LICENSE', true);
 ```
 
-## Önerilen ücret politikası
+Akış:
 
-**1) Kurulum ücreti (tek sefer)**  
-Eklenti kurulumu + ilk site tarama + hizmet kutusu ayarı.
+1. Müşteriye ZIP + 1 satır anahtar verin  
+2. Eklentiyi kurun, master key’i wp-config’e yazın  
+3. Müşteri Ayarlar’a anahtarı yapıştırır → **Premium 365 gün**  
+4. Sohbet sizin OpenAI bakiyenizden düşer  
 
-**2) Aylık paket (önerilen ana gelir)**  
+## Ücret önerisi
 
-| Paket | Aylık mesaj hakkı (yaklaşık) | Kim için |
-|-------|------------------------------|----------|
-| Starter | 500–1.000 mesaj | Küçük site |
-| Business | 3.000–5.000 mesaj | Orta trafik |
-| Pro | 10.000+ mesaj | Yoğun / çok dil |
+| Kalem | Ne için |
+|-------|---------|
+| Plugin + 1 yıl lisans | Tek sefer satış (ZIP + anahtar) |
+| Yıllık yenileme | Süre bitince yeni anahtar veya aynı anahtarı yeniden aktive (süresi dolmuşsa +365 gün) |
+| Kurulum hizmeti | İsteğe bağlı (wp-config + tarama + kutular) |
 
-1 “mesaj” = ziyaretçi 1 soru + asistan 1 yanıt (veya platformda 1 completion).
+OpenAI maliyetini (ortalama mesaj × fiyat) satış fiyatına **3–5×** gömün; bakiye azaldıkça developer hesabına top-up yapın.
 
-**3) Kontör / top-up**  
-Paket bitince: +500 / +2000 / +5000 mesaj paketleri. Soft limit: %90’da uyarı, %100’de sohbet “kontör bitti” der.
+## Güvenlik notu
 
-**4) Maliyet çarpanı**  
-OpenAI maliyetinin **3–5×**’i satış fiyatı olarak sağlıklıdır (özetleme + bilgi bankası + destek payı).
-
-Örnek (kabaca): gpt-4o-mini ile ortalama 1 tur ~$0.001–0.003 ise müşteriye 1 kontörü 0.05–0.15 TL bandında satmak (kur ve pakete göre ayarlanır) sürdürülebilir marj bırakır — kesin rakamı kendi OpenAI faturanıza göre netleştirin.
-
-## Platformda tutulması gerekenler
-
-- Lisans ↔ site URL bağlama (kopya koruması)  
-- Kontör bakiyesi + her completion düşümü  
-- Rate limit (IP + lisans)  
-- Kullanım raporu (müşteri panelinde)  
-
-## Eklenti tarafı (bu sürüm)
-
-- Müşteri UI’dan API key / token / model kaldırıldı  
-- `license_key` alanı + durum/kontör gösterimi  
-- Sohbet `F2F_AI_Chatbot_Gateway` üzerinden platforma gider  
-- Platform yoksa yalnızca `F2F_AI_MASTER_OPENAI_KEY` ile çalışır (sizin sunucunuz)
+- Eklentide **düz metin anahtar yok** — sadece hash.  
+- CSV’yi asla ZIP’e / public repo’ya koymayın (`licenses/` gitignore’da).  
+- İleride isterseniz `platform.f2fbilisim.com` ile site URL bağlama + uzaktan iptal eklenebilir.

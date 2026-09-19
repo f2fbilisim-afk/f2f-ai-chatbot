@@ -1,6 +1,6 @@
 <?php
 /**
- * Paid SaaS gateway — license → F2F platform (OpenAI key never on customer UI).
+ * Chat gateway — premium license unlocks AI; OpenAI key stays on F2F (wp-config / platform).
  *
  * @package F2F_AI_Chatbot
  */
@@ -10,13 +10,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Routes chat through F2F platform with license + credits.
- * Direct OpenAI only via server constant (F2F internal), never customer settings.
+ * Routes chat when premium license is active.
+ * OpenAI is never entered in the customer UI.
  */
 class F2F_AI_Chatbot_Gateway {
 
 	/**
-	 * Platform API base (override with F2F_AI_PLATFORM_URL in wp-config).
+	 * Platform API base (optional remote proxy).
 	 *
 	 * @return string
 	 */
@@ -33,7 +33,7 @@ class F2F_AI_Chatbot_Gateway {
 	}
 
 	/**
-	 * Master OpenAI key — only from wp-config, never from plugin UI.
+	 * Master OpenAI key — only from wp-config (your developer project API).
 	 *
 	 * @return string
 	 */
@@ -57,129 +57,72 @@ class F2F_AI_Chatbot_Gateway {
 	}
 
 	/**
-	 * @return array{license:string, credits:?int, status:string, message:string}
-	 */
-	public static function license_status() {
-		$s       = f2f_ai_chatbot_get_settings();
-		$license = isset( $s['license_key'] ) ? trim( (string) $s['license_key'] ) : '';
-		$cached  = get_transient( 'f2f_ai_license_status' );
-
-		if ( $license && is_array( $cached ) ) {
-			return $cached;
-		}
-
-		if ( ! $license ) {
-			if ( self::master_openai_key() ) {
-				return array(
-					'license' => '',
-					'credits' => null,
-					'status'  => 'master',
-					'message' => __( 'Geliştirici / F2F master modu (wp-config).', 'f2f-ai-chatbot' ),
-				);
-			}
-			return array(
-				'license' => '',
-				'credits' => 0,
-				'status'  => 'missing',
-				'message' => __( 'Lisans anahtarı yok. platform.f2fbilisim.com üzerinden alın.', 'f2f-ai-chatbot' ),
-			);
-		}
-
-		$remote = self::remote_license_check( $license );
-		if ( ! empty( $remote['ok'] ) ) {
-			set_transient( 'f2f_ai_license_status', $remote, 5 * MINUTE_IN_SECONDS );
-			return $remote;
-		}
-
-		// Platform henüz yoksa / erişilemezse — master key ile devam (F2F kurulumu).
-		if ( self::master_openai_key() ) {
-			return array(
-				'license' => $license,
-				'credits' => null,
-				'status'  => 'master',
-				'message' => __( 'Platforma ulaşılamadı; master key ile çalışıyor.', 'f2f-ai-chatbot' ),
-			);
-		}
-
-		return array(
-			'license' => $license,
-			'credits' => isset( $remote['credits'] ) ? $remote['credits'] : 0,
-			'status'  => isset( $remote['status'] ) ? $remote['status'] : 'error',
-			'message' => isset( $remote['message'] ) ? $remote['message'] : __( 'Lisans doğrulanamadı.', 'f2f-ai-chatbot' ),
-		);
-	}
-
-	/**
-	 * @param string $license License key.
 	 * @return array<string, mixed>
 	 */
-	private static function remote_license_check( $license ) {
-		$url = self::platform_url() . '/api/v1/chatbot/license';
-		$res = wp_remote_post(
-			$url,
-			array(
-				'timeout' => 12,
-				'headers' => array( 'Content-Type' => 'application/json' ),
-				'body'    => wp_json_encode(
-					array(
-						'license'  => $license,
-						'site_url' => home_url( '/' ),
-					)
-				),
-			)
-		);
+	public static function license_status() {
+		$local = F2F_AI_Chatbot_License::status();
 
-		if ( is_wp_error( $res ) ) {
+		// Developer / F2F-managed site: master key may run without a sold license.
+		if ( empty( $local['premium'] ) && self::master_openai_key() && defined( 'F2F_AI_ALLOW_MASTER_WITHOUT_LICENSE' ) && F2F_AI_ALLOW_MASTER_WITHOUT_LICENSE ) {
 			return array(
-				'ok'      => false,
-				'status'  => 'offline',
-				'message' => $res->get_error_message(),
+				'ok'         => true,
+				'license'    => '',
+				'credits'    => null,
+				'status'     => 'master',
+				'message'    => __( 'Geliştirici master modu (wp-config).', 'f2f-ai-chatbot' ),
+				'premium'    => true,
+				'expires_at' => null,
+				'days_left'  => null,
 			);
 		}
 
-		$code = (int) wp_remote_retrieve_response_code( $res );
-		$data = json_decode( (string) wp_remote_retrieve_body( $res ), true );
-		if ( $code < 200 || $code >= 300 || ! is_array( $data ) ) {
-			return array(
-				'ok'      => false,
-				'status'  => 'invalid',
-				'message' => is_array( $data ) && ! empty( $data['message'] ) ? (string) $data['message'] : __( 'Lisans geçersiz veya platform yanıt vermedi.', 'f2f-ai-chatbot' ),
-				'credits' => 0,
-			);
-		}
-
-		return array(
-			'ok'      => true,
-			'license' => $license,
-			'credits' => isset( $data['credits'] ) ? (int) $data['credits'] : 0,
-			'status'  => isset( $data['status'] ) ? (string) $data['status'] : 'active',
-			'message' => isset( $data['message'] ) ? (string) $data['message'] : __( 'Lisans aktif.', 'f2f-ai-chatbot' ),
-			'plan'    => isset( $data['plan'] ) ? (string) $data['plan'] : '',
-		);
+		$local['credits'] = null;
+		return $local;
 	}
 
 	/**
-	 * Chat completion via platform (preferred) or master OpenAI key.
+	 * Chat completion via master OpenAI key (preferred) or optional platform proxy.
 	 *
 	 * @param array<int, array>    $messages Messages.
 	 * @param array<string, mixed> $args     Args.
 	 * @return array{ok:bool, content?:string, error?:string, credits?:int, usage?:array}
 	 */
 	public static function chat( $messages, $args = array() ) {
+		$lic = self::license_status();
+		if ( empty( $lic['premium'] ) && empty( $lic['ok'] ) ) {
+			$status = isset( $lic['status'] ) ? (string) $lic['status'] : 'missing';
+			if ( 'expired' === $status ) {
+				return array(
+					'ok'    => false,
+					'error' => __( 'Premium lisans süresi doldu. Yeni anahtar için F2F Bilişim ile iletişime geçin.', 'f2f-ai-chatbot' ),
+				);
+			}
+			if ( 'invalid' === $status ) {
+				return array(
+					'ok'    => false,
+					'error' => __( 'Lisans anahtarı geçersiz.', 'f2f-ai-chatbot' ),
+				);
+			}
+			return array(
+				'ok'    => false,
+				'error' => __( 'Premium lisans gerekli. Ayarlar → F2F Lisans alanına satın aldığınız anahtarı girin.', 'f2f-ai-chatbot' ),
+			);
+		}
+
 		$s       = f2f_ai_chatbot_get_settings();
 		$license = isset( $s['license_key'] ) ? trim( (string) $s['license_key'] ) : '';
 
-		if ( $license ) {
+		// Optional remote platform (when you later proxy all traffic).
+		if ( $license && apply_filters( 'f2f_ai_chatbot_prefer_platform', false ) ) {
 			$platform = self::chat_via_platform( $license, $messages, $args );
-			if ( ! empty( $platform['ok'] ) || ( isset( $platform['status'] ) && 'no_credits' === $platform['status'] ) ) {
+			if ( ! empty( $platform['ok'] ) ) {
 				return $platform;
 			}
-			// Platform down → fall through to master if available.
 		}
 
 		$master = self::master_openai_key();
 		if ( $master ) {
-			$out = F2F_AI_Chatbot_OpenAI::chat(
+			return F2F_AI_Chatbot_OpenAI::chat(
 				$master,
 				self::model(),
 				$messages,
@@ -188,19 +131,23 @@ class F2F_AI_Chatbot_Gateway {
 					'temperature' => isset( $args['temperature'] ) ? (float) $args['temperature'] : 0.5,
 				)
 			);
-			return $out;
 		}
 
-		if ( ! $license ) {
+		// Fallback: try platform if master key not on this WP install.
+		if ( $license ) {
+			$platform = self::chat_via_platform( $license, $messages, $args );
+			if ( ! empty( $platform['ok'] ) ) {
+				return $platform;
+			}
 			return array(
 				'ok'    => false,
-				'error' => __( 'F2F lisans anahtarı gerekli. OpenAI anahtarı müşteri panelinde yoktur — kontör / lisans platform.f2fbilisim.com üzerinden yüklenir.', 'f2f-ai-chatbot' ),
+				'error' => isset( $platform['error'] ) ? $platform['error'] : __( 'AI servisine bağlanılamadı. F2F kurulumunda OpenAI master key veya platform gerekir.', 'f2f-ai-chatbot' ),
 			);
 		}
 
 		return array(
 			'ok'    => false,
-			'error' => isset( $platform['error'] ) ? $platform['error'] : __( 'Sohbet servisine bağlanılamadı. Lisans ve kontörünüzü kontrol edin.', 'f2f-ai-chatbot' ),
+			'error' => __( 'Lisans aktif ama AI anahtarı yapılandırılmamış. F2F desteğine yazın.', 'f2f-ai-chatbot' ),
 		);
 	}
 
@@ -243,15 +190,6 @@ class F2F_AI_Chatbot_Gateway {
 		$code = (int) wp_remote_retrieve_response_code( $res );
 		$data = json_decode( (string) wp_remote_retrieve_body( $res ), true );
 
-		if ( 402 === $code || ( is_array( $data ) && isset( $data['status'] ) && 'no_credits' === $data['status'] ) ) {
-			return array(
-				'ok'      => false,
-				'status'  => 'no_credits',
-				'error'   => __( 'Kontörünüz bitti. platform.f2fbilisim.com üzerinden yeni paket yükleyin.', 'f2f-ai-chatbot' ),
-				'credits' => 0,
-			);
-		}
-
 		if ( $code < 200 || $code >= 300 || ! is_array( $data ) ) {
 			$msg = __( 'Platform sohbet hatası.', 'f2f-ai-chatbot' );
 			if ( is_array( $data ) && ! empty( $data['message'] ) ) {
@@ -274,27 +212,9 @@ class F2F_AI_Chatbot_Gateway {
 			);
 		}
 
-		if ( isset( $data['credits'] ) ) {
-			set_transient(
-				'f2f_ai_license_status',
-				array(
-					'ok'      => true,
-					'license' => $license,
-					'credits' => (int) $data['credits'],
-					'status'  => 'active',
-					'message' => __( 'Lisans aktif.', 'f2f-ai-chatbot' ),
-				),
-				5 * MINUTE_IN_SECONDS
-			);
-		}
-
-		$out = array(
+		return array(
 			'ok'      => true,
 			'content' => $reply,
 		);
-		if ( isset( $data['credits'] ) ) {
-			$out['credits'] = (int) $data['credits'];
-		}
-		return $out;
 	}
 }
