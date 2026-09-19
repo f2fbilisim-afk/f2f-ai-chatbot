@@ -75,6 +75,45 @@ $steps = array(
 		</div>
 	</header>
 
+	<aside class="f2f-support-card" id="f2f_support_card" aria-label="<?php echo esc_attr__( 'F2F Destek', 'f2f-ai-chatbot' ); ?>">
+		<button type="button" class="f2f-support-card__close" id="f2f_support_close" aria-label="<?php echo esc_attr__( 'Kapat', 'f2f-ai-chatbot' ); ?>">&times;</button>
+		<div class="f2f-support-card__accent" aria-hidden="true"></div>
+		<div class="f2f-support-card__body">
+			<h2 class="f2f-support-card__title">
+				<?php
+				echo wp_kses(
+					__( 'Sitenize özel <em>AI asistan</em> — lead toplayın, 7/24 yanıt verin.', 'f2f-ai-chatbot' ),
+					array( 'em' => array() )
+				);
+				?>
+			</h2>
+			<p class="f2f-support-card__text">
+				<?php echo esc_html__( 'F2F AI Chatbot; ziyaretçiyi karşılar, sektörünüze göre konuşur, iletişim formuyla lead toplar ve WhatsApp’a yönlendirir. OpenAI anahtarı müşteri panelinde yoktur — lisans + paket kotası ile yönetilir.', 'f2f-ai-chatbot' ); ?>
+			</p>
+			<div class="f2f-support-card__person">
+				<img
+					class="f2f-support-card__photo"
+					src="<?php echo esc_url( F2F_AI_CHATBOT_URL . 'assets/img/f2f-founder.png' ); ?>"
+					alt="<?php echo esc_attr__( 'F2F Bilişim', 'f2f-ai-chatbot' ); ?>"
+					width="72"
+					height="72"
+					loading="lazy"
+				/>
+				<div class="f2f-support-card__who">
+					<strong><?php echo esc_html__( 'F2F Bilişim', 'f2f-ai-chatbot' ); ?></strong>
+					<span><?php echo esc_html__( 'Kurulum & destek ekibi', 'f2f-ai-chatbot' ); ?></span>
+				</div>
+			</div>
+			<p class="f2f-support-card__help">
+				<?php echo esc_html__( 'Destek almak isterseniz bize yazın veya arayın:', 'f2f-ai-chatbot' ); ?>
+			</p>
+			<div class="f2f-support-card__contacts">
+				<a class="f2f-support-card__btn" href="mailto:info@f2fbilisim.com">info@f2fbilisim.com</a>
+				<a class="f2f-support-card__btn f2f-support-card__btn--phone" href="tel:+905499009310">+90 549 900 93 10</a>
+			</div>
+		</div>
+	</aside>
+
 	<div
 		class="f2f-quota-card <?php echo esc_attr( $card_mod ); ?>"
 		id="f2f_quota_card"

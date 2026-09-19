@@ -345,6 +345,19 @@
       setStatus('Sihirbaz başa alındı. Adım adım ilerleyin.', false);
     });
 
+    $('#f2f_support_close').on('click', function (e) {
+      e.preventDefault();
+      $('#f2f_support_card').addClass('is-hidden');
+      try {
+        window.localStorage.setItem('f2f_ai_support_card_hidden', '1');
+      } catch (err) {}
+    });
+    try {
+      if (window.localStorage.getItem('f2f_ai_support_card_hidden') === '1') {
+        $('#f2f_support_card').addClass('is-hidden');
+      }
+    } catch (err) {}
+
     var $card = $('#f2f_quota_card');
     if ($card.length) {
       startCountdown($card.attr('data-expires-at'), $card.attr('data-server-now'));

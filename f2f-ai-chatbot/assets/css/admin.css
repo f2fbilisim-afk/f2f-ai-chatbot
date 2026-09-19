@@ -57,6 +57,148 @@
   box-shadow: none;
 }
 
+.f2f-support-card {
+  position: relative;
+  display: flex;
+  margin: 0 0 18px;
+  overflow: hidden;
+  border-radius: 18px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 18px 40px rgba(15, 31, 26, 0.08);
+}
+
+.f2f-support-card.is-hidden {
+  display: none;
+}
+
+.f2f-support-card__accent {
+  flex: 0 0 6px;
+  background: linear-gradient(180deg, #22c55e 0%, #0b6e4f 100%);
+}
+
+.f2f-support-card__body {
+  flex: 1;
+  padding: 22px 48px 22px 22px;
+}
+
+.f2f-support-card__close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #6b7280;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.f2f-support-card__close:hover {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.f2f-support-card__title {
+  margin: 0 0 10px;
+  padding: 0;
+  border: 0;
+  font-size: 1.35rem;
+  line-height: 1.3;
+  color: #111827;
+}
+
+.f2f-support-card__title em {
+  font-style: normal;
+  color: #0b6e4f;
+}
+
+.f2f-support-card__text {
+  margin: 0 0 16px;
+  max-width: 62ch;
+  color: #4b5563;
+  font-size: 0.98rem;
+  line-height: 1.55;
+}
+
+.f2f-support-card__person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.f2f-support-card__photo {
+  width: 72px;
+  height: 72px;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 3px solid #e8f5ee;
+  background: #111;
+}
+
+.f2f-support-card__who {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.f2f-support-card__who strong {
+  font-size: 0.98rem;
+  color: #111827;
+}
+
+.f2f-support-card__who span {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.f2f-support-card__help {
+  margin: 0 0 10px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.f2f-support-card__contacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.f2f-support-card__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: #0b6e4f;
+  color: #fff !important;
+  text-decoration: none !important;
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+.f2f-support-card__btn:hover {
+  background: #095c42;
+  color: #fff !important;
+}
+
+.f2f-support-card__btn--phone {
+  background: #fff;
+  color: #0b6e4f !important;
+  border: 1.5px solid #0b6e4f;
+}
+
+.f2f-support-card__btn--phone:hover {
+  background: #f0faf4;
+  color: #0b6e4f !important;
+}
+
 .f2f-quota-card {
   margin: 0 0 18px;
   padding: 18px 20px 14px;
