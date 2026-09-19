@@ -1,0 +1,127 @@
+.f2f-conv-wrap {
+  margin: 20px 20px 20px 0;
+}
+
+.f2f-conv {
+  --bg: #111113;
+  --card: #1a1a1e;
+  --line: #2a2a30;
+  --ink: #f4f4f5;
+  --muted: #a1a1aa;
+  --accent: #22c55e;
+  background: var(--bg);
+  color: var(--ink);
+  border-radius: 16px;
+  padding: 28px 24px 32px;
+  max-width: 1200px;
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+}
+
+.f2f-conv__head h1 {
+  margin: 0 0 8px;
+  color: #fff;
+  font-size: 1.65rem;
+  font-weight: 700;
+}
+
+.f2f-conv__head p {
+  margin: 0 0 22px;
+  color: var(--muted);
+  max-width: 62ch;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.f2f-conv__empty {
+  padding: 28px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.f2f-conv__table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--card);
+}
+
+.f2f-conv__table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 900px;
+}
+
+.f2f-conv__table th,
+.f2f-conv__table td {
+  text-align: left;
+  padding: 16px 14px;
+  vertical-align: top;
+  border-bottom: 1px solid var(--line);
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+
+.f2f-conv__table th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: #141418;
+}
+
+.f2f-conv__table tr:last-child td {
+  border-bottom: 0;
+}
+
+.f2f-conv__table strong {
+  display: block;
+  color: #fff;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.f2f-conv__meta {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.f2f-conv__contact span {
+  display: block;
+  color: #e4e4e7;
+}
+
+.f2f-conv__summary {
+  max-width: 360px;
+  color: #d4d4d8;
+  white-space: pre-wrap;
+}
+
+.f2f-conv__summary em {
+  color: var(--muted);
+  font-style: normal;
+}
+
+.f2f-conv__status {
+  appearance: none;
+  background: #0a0a0a;
+  color: #fff;
+  border: 1px solid #3f3f46;
+  border-radius: 8px;
+  padding: 8px 28px 8px 12px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
+.f2f-conv__date {
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 12.5px;
+}

@@ -65,6 +65,16 @@ class F2F_AI_Chatbot_REST_API {
 				'permission_callback' => array( $this, 'permission' ),
 			)
 		);
+
+		register_rest_route(
+			self::NS,
+			'/summarize',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'handle_summarize' ),
+				'permission_callback' => array( $this, 'permission' ),
+			)
+		);
 	}
 
 	/**
@@ -232,9 +242,66 @@ class F2F_AI_Chatbot_REST_API {
 			);
 		}
 
+		$reply   = $result['content'];
+		$lead_id = absint( $request->get_param( 'leadId' ) );
+		if ( ! $lead_id && ! empty( $lead['id'] ) ) {
+			$lead_id = absint( $lead['id'] );
+		}
+		if ( $lead_id ) {
+			F2F_AI_Chatbot_Leads::append_history(
+				$lead_id,
+				array(
+					array(
+						'role'    => 'user',
+						'content' => $message,
+					),
+					array(
+						'role'    => 'assistant',
+						'content' => $reply,
+					),
+				)
+			);
+		}
+
 		return rest_ensure_response(
 			array(
-				'reply' => $result['content'],
+				'reply'            => $reply,
+				'leadId'           => $lead_id ? $lead_id : null,
+				'summaryInSeconds' => 120,
+			)
+		);
+	}
+
+	/**
+	 * Force / complete summary after 2 minutes idle (browser backup for WP-Cron).
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function handle_summarize( $request ) {
+		$lead_id = absint( $request->get_param( 'leadId' ) );
+		if ( ! $lead_id ) {
+			return new WP_Error( 'f2f_lead', __( 'leadId gerekli.', 'f2f-ai-chatbot' ), array( 'status' => 400 ) );
+		}
+
+		$force = (bool) $request->get_param( 'force' );
+		$out   = F2F_AI_Chatbot_Leads::summarize_lead( $lead_id, $force );
+
+		if ( empty( $out['ok'] ) ) {
+			return rest_ensure_response(
+				array(
+					'ok'      => false,
+					'pending' => true,
+					'message' => isset( $out['error'] ) ? $out['error'] : '',
+				)
+			);
+		}
+
+		return rest_ensure_response(
+			array(
+				'ok'       => true,
+				'summary'  => $out['summary'],
+				'interest' => $out['interest'],
 			)
 		);
 	}

@@ -3,7 +3,7 @@
  * Plugin Name:       F2F AI Chatbot
  * Plugin URI:        https://www.f2fbilisim.com
  * Description:       Sektöre özel AI chatbot — site içeriğini tarar, lead toplar, OpenAI ile yanıtlar. WhatsApp canlı görüşme.
- * Version:           1.2.1
+ * Version:           1.3.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            F2F Bilişim
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'F2F_AI_CHATBOT_VERSION', '1.2.1' );
+define( 'F2F_AI_CHATBOT_VERSION', '1.3.0' );
 define( 'F2F_AI_CHATBOT_FILE', __FILE__ );
 define( 'F2F_AI_CHATBOT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'F2F_AI_CHATBOT_URL', plugin_dir_url( __FILE__ ) );
@@ -26,6 +26,7 @@ require_once F2F_AI_CHATBOT_PATH . 'includes/class-openai.php';
 require_once F2F_AI_CHATBOT_PATH . 'includes/class-leads.php';
 require_once F2F_AI_CHATBOT_PATH . 'includes/class-knowledge.php';
 require_once F2F_AI_CHATBOT_PATH . 'includes/class-admin.php';
+require_once F2F_AI_CHATBOT_PATH . 'includes/class-conversations-admin.php';
 require_once F2F_AI_CHATBOT_PATH . 'includes/class-rest-api.php';
 require_once F2F_AI_CHATBOT_PATH . 'includes/class-frontend.php';
 
@@ -37,6 +38,7 @@ function f2f_ai_chatbot_init() {
 	F2F_AI_Chatbot_Leads::instance();
 	F2F_AI_Chatbot_Knowledge::instance();
 	F2F_AI_Chatbot_Admin::instance();
+	F2F_AI_Chatbot_Conversations_Admin::instance();
 	F2F_AI_Chatbot_REST_API::instance();
 	F2F_AI_Chatbot_Frontend::instance();
 }

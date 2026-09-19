@@ -14,8 +14,10 @@
     pendingIntent: '',
     pendingService: '',
     lead: null,
+    leadId: null,
     history: [],
     busy: false,
+    summaryTimer: null,
   };
 
   var ICONS = {
@@ -307,7 +309,9 @@
             return;
           }
           state.lead = payload;
+          state.leadId = (result.data && result.data.leadId) || null;
           state.history = [];
+          scheduleSummary();
           showScreen('chat');
           whatsappBtn.classList.add('is-visible');
           messages.innerHTML = '';
@@ -448,6 +452,33 @@
       return node;
     }
 
+    function scheduleSummary() {
+      if (state.summaryTimer) {
+        clearTimeout(state.summaryTimer);
+        state.summaryTimer = null;
+      }
+      if (!state.leadId) return;
+      state.summaryTimer = setTimeout(function () {
+        requestSummary(true);
+      }, 120000);
+    }
+
+    function requestSummary(force) {
+      if (!state.leadId) return;
+      api('summarize', { leadId: state.leadId, force: !!force }).catch(function () {});
+    }
+
+    // If tab closes, try to flush summary timer early via keepalive.
+    window.addEventListener('pagehide', function () {
+      if (!state.leadId) return;
+      try {
+        var body = JSON.stringify({ leadId: state.leadId, force: false });
+        if (navigator.sendBeacon) {
+          // Beacon can't set custom headers easily; rely on WP-Cron primarily.
+        }
+      } catch (e) {}
+    });
+
     function sendChat(text, historyAlreadyHasUser) {
       state.busy = true;
       cSend.disabled = true;
@@ -458,13 +489,16 @@
           })
         : state.history.slice(0, -1);
 
-      // Don't send the welcome assistant message duplicates awkwardly — keep last 12
       hist = hist.slice(-12);
+
+      var leadPayload = state.lead ? Object.assign({}, state.lead) : {};
+      if (state.leadId) leadPayload.id = state.leadId;
 
       api('chat', {
         message: text,
         history: hist,
-        lead: state.lead,
+        lead: leadPayload,
+        leadId: state.leadId,
       })
         .then(function (result) {
           typing.remove();
@@ -481,11 +515,15 @@
             appendBubble('error', i18n.error || 'Error', 'is-error');
             return;
           }
+          if (result.data && result.data.leadId) {
+            state.leadId = result.data.leadId;
+          }
           appendBubble('bot', reply);
           state.history.push({ role: 'assistant', content: reply });
           if (state.history.length > 24) {
             state.history = state.history.slice(-24);
           }
+          scheduleSummary();
         })
         .catch(function () {
           typing.remove();
