@@ -162,7 +162,7 @@ class F2F_AI_Chatbot_Gateway {
 			return $result;
 		}
 
-		// Fallback: try platform if master key not on this WP install.
+		// No master key on this WP install — try optional remote platform, else clear setup error.
 		if ( $license ) {
 			$result = self::chat_via_platform( $license, $messages, $args );
 			if ( ! empty( $result['ok'] ) ) {
@@ -171,15 +171,20 @@ class F2F_AI_Chatbot_Gateway {
 				$result['credits'] = isset( $st['messages_left'] ) ? (int) $st['messages_left'] : null;
 				return $result;
 			}
+			$platform_err = isset( $result['error'] ) ? (string) $result['error'] : '';
 			return array(
 				'ok'    => false,
-				'error' => isset( $result['error'] ) ? $result['error'] : __( 'AI servisine bağlanılamadı. F2F kurulumunda OpenAI master key veya platform gerekir.', 'f2f-ai-chatbot' ),
+				'error' => sprintf(
+					/* translators: %s: platform/network detail */
+					__( 'AI yanıt veremiyor: bu sitede F2F_AI_MASTER_OPENAI_KEY tanımlı değil ve platform proxy başarısız (%s). wp-config.php içine master OpenAI anahtarını ekleyin.', 'f2f-ai-chatbot' ),
+					$platform_err ? $platform_err : __( 'bağlantı yok', 'f2f-ai-chatbot' )
+				),
 			);
 		}
 
 		return array(
 			'ok'    => false,
-			'error' => __( 'Lisans aktif ama AI anahtarı yapılandırılmamış. F2F desteğine yazın.', 'f2f-ai-chatbot' ),
+			'error' => __( 'Lisans aktif ama AI anahtarı yapılandırılmamış. wp-config.php dosyasına define(\'F2F_AI_MASTER_OPENAI_KEY\', \'sk-...\'); ekleyin.', 'f2f-ai-chatbot' ),
 		);
 	}
 
@@ -223,9 +228,16 @@ class F2F_AI_Chatbot_Gateway {
 		$data = json_decode( (string) wp_remote_retrieve_body( $res ), true );
 
 		if ( $code < 200 || $code >= 300 || ! is_array( $data ) ) {
-			$msg = __( 'Platform sohbet hatası.', 'f2f-ai-chatbot' );
+			$msg = sprintf(
+				/* translators: 1: http code, 2: host */
+				__( 'Platform yanıt vermedi (HTTP %1$d · %2$s). Bu endpoint henüz yoksa wp-config’e F2F_AI_MASTER_OPENAI_KEY ekleyin.', 'f2f-ai-chatbot' ),
+				$code ? $code : 0,
+				wp_parse_url( self::platform_url(), PHP_URL_HOST ) ? wp_parse_url( self::platform_url(), PHP_URL_HOST ) : 'platform'
+			);
 			if ( is_array( $data ) && ! empty( $data['message'] ) ) {
 				$msg = (string) $data['message'];
+			} elseif ( is_array( $data ) && ! empty( $data['error'] ) ) {
+				$msg = is_string( $data['error'] ) ? (string) $data['error'] : $msg;
 			}
 			return array(
 				'ok'    => false,

@@ -40,7 +40,41 @@ class F2F_AI_Chatbot_Admin {
 		add_action( 'wp_ajax_f2f_ai_wizard_save', array( $this, 'ajax_wizard_save' ) );
 		add_action( 'wp_ajax_f2f_ai_wizard_finish', array( $this, 'ajax_wizard_finish' ) );
 		add_action( 'wp_ajax_f2f_ai_notify_save', array( $this, 'ajax_notify_save' ) );
+		add_action( 'admin_notices', array( $this, 'maybe_master_key_notice' ) );
 		add_filter( 'plugin_action_links_' . plugin_basename( F2F_AI_CHATBOT_FILE ), array( $this, 'action_links' ) );
+	}
+
+	/**
+	 * Warn F2F/admin when OpenAI master key is missing (causes "Platform sohbet hatası").
+	 */
+	public function maybe_master_key_notice() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		if ( ! class_exists( 'F2F_AI_Chatbot_Gateway' ) ) {
+			return;
+		}
+		if ( F2F_AI_Chatbot_Gateway::master_openai_key() ) {
+			return;
+		}
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( ! $screen ) {
+			return;
+		}
+		$ok = (
+			false !== strpos( (string) $screen->id, 'f2f-ai' )
+			|| 'settings_page_f2f-ai-chatbot' === $screen->id
+			|| 'plugins' === $screen->id
+		);
+		if ( ! $ok ) {
+			return;
+		}
+		echo '<div class="notice notice-warning"><p><strong>F2F AI Chatbot:</strong> ';
+		echo esc_html__( 'Sohbet için wp-config.php içine OpenAI master anahtarı ekleyin (müşteri panelinde API alanı yoktur):', 'f2f-ai-chatbot' );
+		echo ' <code>define(\'F2F_AI_MASTER_OPENAI_KEY\', \'sk-proj-...\');</code>';
+		echo ' ';
+		echo esc_html__( 'Bu yoksa eklenti platform.f2fbilisim.com’a düşer ve “Platform sohbet hatası” görünür.', 'f2f-ai-chatbot' );
+		echo '</p></div>';
 	}
 
 	/**

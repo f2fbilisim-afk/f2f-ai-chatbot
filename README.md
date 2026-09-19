@@ -24,11 +24,19 @@ Detay: [PRICING.md](./PRICING.md)
 
 ## Kurulum (F2F)
 
+Müşteri sitesinin `wp-config.php` dosyasına (FTP / hosting paneli):
+
 ```php
 define('F2F_AI_MASTER_OPENAI_KEY', 'sk-proj-...');
 ```
 
-Sunucuda `wp_mail` / SMTP çalışır olmalı; From adresi `noreply@f2fbilisim.com` (SPF/DKIM önerilir).
+Bu satır yoksa lisans çalışsa bile sohbet **“Platform sohbet hatası”** verir — çünkü henüz canlı bir `platform.f2fbilisim.com` proxy yok; yanıtlar doğrudan OpenAI master key ile üretilir.
+
+İsteğe bağlı model:
+
+```php
+define('F2F_AI_MODEL', 'gpt-4o-mini');
+```
 
 ## Anahtar üretimi
 
