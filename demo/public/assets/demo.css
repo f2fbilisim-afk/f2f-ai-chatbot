@@ -137,6 +137,22 @@ body {
   color: var(--ink);
 }
 
+.cta-download {
+  background: #fff;
+  border: 2px solid var(--accent);
+  color: var(--accent);
+}
+
+.cta-download:hover {
+  background: rgba(11, 110, 79, 0.08);
+}
+
+.cta-download[aria-busy='true'] {
+  opacity: 0.65;
+  cursor: wait;
+  pointer-events: none;
+}
+
 .cta:disabled {
   opacity: 0.65;
   cursor: wait;

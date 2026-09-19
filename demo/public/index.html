@@ -11,7 +11,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/plugin/css/widget.css" />
-    <link rel="stylesheet" href="/assets/demo.css" />
+    <link rel="stylesheet" href="/assets/demo.css?v=2" />
   </head>
   <body>
     <div class="demo-shell">
@@ -32,9 +32,12 @@
         </p>
         <div class="cta-row">
           <button type="button" class="cta" id="openChatBtn">Widget’ı aç</button>
-          <button type="button" class="cta cta-ghost" id="downloadZipBtn" data-url="/download/f2f-ai-chatbot.zip">
-            Plugin ZIP indir
-          </button>
+          <a
+            class="cta cta-download"
+            id="downloadZipBtn"
+            href="/download/f2f-ai-chatbot.zip"
+            download="f2f-ai-chatbot.zip"
+          >Plugin ZIP indir</a>
         </div>
         <p class="download-hint" id="downloadHint" hidden></p>
       </main>
@@ -73,7 +76,7 @@
         var btn = document.getElementById('downloadZipBtn');
         var hint = document.getElementById('downloadHint');
         if (!btn) return;
-        var zipUrl = btn.getAttribute('data-url') || '/download/f2f-ai-chatbot.zip';
+        var zipUrl = btn.getAttribute('href') || '/download/f2f-ai-chatbot.zip';
         var zipName = 'f2f-ai-chatbot.zip';
 
         function setHint(text, isError) {
@@ -98,8 +101,10 @@
           }, 2000);
         }
 
-        btn.addEventListener('click', function () {
-          btn.disabled = true;
+        btn.addEventListener('click', function (e) {
+          // Prefer blob download; native href remains as progressive enhancement
+          e.preventDefault();
+          btn.setAttribute('aria-busy', 'true');
           setHint('ZIP hazırlanıyor…', false);
           fetch(zipUrl, { cache: 'no-store' })
             .then(function (res) {
@@ -112,12 +117,11 @@
               setHint('İndirme başladı (' + Math.round(blob.size / 1024) + ' KB).', false);
             })
             .catch(function () {
-              // Fallback: navigate so Content-Disposition can still save the file
               setHint('Doğrudan bağlantı açılıyor…', false);
               window.location.assign(zipUrl);
             })
             .finally(function () {
-              btn.disabled = false;
+              btn.removeAttribute('aria-busy');
             });
         });
       })();

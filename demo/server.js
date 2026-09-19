@@ -298,7 +298,17 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host || '127.0.0.1'}`);
 
     if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html')) {
-      serveFile(res, path.join(ROOT, 'public', 'index.html'));
+      fs.readFile(path.join(ROOT, 'public', 'index.html'), (err, data) => {
+        if (err) {
+          send(res, 404, 'Not found', { 'Content-Type': 'text/plain; charset=utf-8' });
+          return;
+        }
+        send(res, 200, data, {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          Pragma: 'no-cache',
+        });
+      });
       return;
     }
     if (req.method === 'GET' && url.pathname.startsWith('/plugin/')) {
