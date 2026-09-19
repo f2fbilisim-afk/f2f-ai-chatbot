@@ -11,7 +11,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/plugin/css/widget.css" />
-    <link rel="stylesheet" href="/assets/demo.css?v=2" />
+    <link rel="stylesheet" href="/assets/demo.css?v=3" />
   </head>
   <body>
     <div class="demo-shell">
@@ -81,9 +81,16 @@
 
         function setHint(text, isError) {
           if (!hint) return;
-          hint.hidden = !text;
           hint.textContent = text || '';
           hint.classList.toggle('is-error', Boolean(isError));
+          hint.classList.toggle('is-visible', Boolean(text));
+          if (text) {
+            hint.removeAttribute('hidden');
+            hint.setAttribute('role', 'status');
+            hint.setAttribute('aria-live', 'polite');
+          } else {
+            hint.setAttribute('hidden', '');
+          }
         }
 
         function triggerBlobDownload(blob) {

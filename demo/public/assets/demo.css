@@ -160,8 +160,14 @@ body {
 
 .download-hint {
   margin: 14px 0 0;
-  font-size: 0.92rem;
-  color: var(--muted);
+  min-height: 1.4em;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.download-hint.is-visible {
+  display: block;
 }
 
 .download-hint.is-error {
