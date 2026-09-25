@@ -1,8 +1,11 @@
 <?php
 /**
- * Self-hosted plugin updates (WP admin → Eklentiler → güncelle).
+ * Self-hosted / GitHub plugin updates (WP admin → Eklentiler → güncelle).
  *
- * Reads a remote JSON manifest. Host ZIP + JSON on f2fbilisim.com (or override URL).
+ * Manifest URL resolution order:
+ * 1. F2F_AI_UPDATE_JSON constant
+ * 2. F2F_AI_GITHUB_REPO constant → raw.githubusercontent.com/.../updates/f2f-ai-chatbot.json
+ * 3. Filter / default f2fbilisim.com
  *
  * @package F2F_AI_Chatbot
  */
@@ -20,7 +23,7 @@ class F2F_AI_Chatbot_Updater {
 	const CACHE_TTL = HOUR_IN_SECONDS * 6;
 
 	/**
-	 * Default public manifest URL (override with F2F_AI_UPDATE_JSON).
+	 * Default public manifest URL.
 	 *
 	 * @return string
 	 */
@@ -28,6 +31,16 @@ class F2F_AI_Chatbot_Updater {
 		if ( defined( 'F2F_AI_UPDATE_JSON' ) && F2F_AI_UPDATE_JSON ) {
 			return (string) F2F_AI_UPDATE_JSON;
 		}
+
+		// e.g. define('F2F_AI_GITHUB_REPO', 'f2fbilisim/f2f-ai-chatbot');
+		if ( defined( 'F2F_AI_GITHUB_REPO' ) && F2F_AI_GITHUB_REPO ) {
+			$repo = trim( (string) F2F_AI_GITHUB_REPO, '/' );
+			$branch = defined( 'F2F_AI_GITHUB_BRANCH' ) && F2F_AI_GITHUB_BRANCH
+				? (string) F2F_AI_GITHUB_BRANCH
+				: 'main';
+			return 'https://raw.githubusercontent.com/' . $repo . '/' . rawurlencode( $branch ) . '/updates/f2f-ai-chatbot.json';
+		}
+
 		/**
 		 * Filter update manifest URL.
 		 *
@@ -35,7 +48,7 @@ class F2F_AI_Chatbot_Updater {
 		 */
 		return (string) apply_filters(
 			'f2f_ai_chatbot_update_json',
-			'https://www.f2fbilisim.com/updates/f2f-ai-chatbot.json'
+			'https://raw.githubusercontent.com/f2fbilisim/f2f-ai-chatbot/main/updates/f2f-ai-chatbot.json'
 		);
 	}
 
@@ -66,7 +79,7 @@ class F2F_AI_Chatbot_Updater {
 		if ( plugin_basename( F2F_AI_CHATBOT_FILE ) !== $file ) {
 			return $links;
 		}
-		$links[] = '<span>' . esc_html__( 'Otomatik güncelleme: F2F sunucusu', 'f2f-ai-chatbot' ) . '</span>';
+		$links[] = '<span>' . esc_html__( 'Otomatik güncelleme: GitHub / F2F', 'f2f-ai-chatbot' ) . '</span>';
 		return $links;
 	}
 
@@ -119,17 +132,17 @@ class F2F_AI_Chatbot_Updater {
 		}
 
 		$info = array(
-			'name'           => isset( $data['name'] ) ? (string) $data['name'] : 'F2F AI Chatbot',
-			'slug'           => 'f2f-ai-chatbot',
-			'version'        => (string) $data['version'],
-			'download_url'   => esc_url_raw( (string) $data['download_url'] ),
-			'requires'       => isset( $data['requires'] ) ? (string) $data['requires'] : '6.0',
-			'tested'         => isset( $data['tested'] ) ? (string) $data['tested'] : '6.7',
-			'requires_php'   => isset( $data['requires_php'] ) ? (string) $data['requires_php'] : '7.4',
-			'homepage'       => isset( $data['homepage'] ) ? esc_url_raw( (string) $data['homepage'] ) : 'https://www.f2fbilisim.com',
-			'changelog'      => isset( $data['changelog'] ) ? wp_kses_post( (string) $data['changelog'] ) : '',
-			'last_updated'   => isset( $data['last_updated'] ) ? (string) $data['last_updated'] : '',
-			'icons'          => isset( $data['icons'] ) && is_array( $data['icons'] ) ? $data['icons'] : array(),
+			'name'         => isset( $data['name'] ) ? (string) $data['name'] : 'F2F AI Chatbot',
+			'slug'         => 'f2f-ai-chatbot',
+			'version'      => (string) $data['version'],
+			'download_url' => esc_url_raw( (string) $data['download_url'] ),
+			'requires'     => isset( $data['requires'] ) ? (string) $data['requires'] : '6.0',
+			'tested'       => isset( $data['tested'] ) ? (string) $data['tested'] : '6.7',
+			'requires_php' => isset( $data['requires_php'] ) ? (string) $data['requires_php'] : '7.4',
+			'homepage'     => isset( $data['homepage'] ) ? esc_url_raw( (string) $data['homepage'] ) : 'https://www.f2fbilisim.com',
+			'changelog'    => isset( $data['changelog'] ) ? wp_kses_post( (string) $data['changelog'] ) : '',
+			'last_updated' => isset( $data['last_updated'] ) ? (string) $data['last_updated'] : '',
+			'icons'        => isset( $data['icons'] ) && is_array( $data['icons'] ) ? $data['icons'] : array(),
 		);
 
 		set_transient( self::CACHE_KEY, $info, self::CACHE_TTL );
@@ -156,7 +169,6 @@ class F2F_AI_Chatbot_Updater {
 
 		$current = F2F_AI_CHATBOT_VERSION;
 		if ( version_compare( $remote['version'], $current, '<=' ) ) {
-			// Ensure we don't leave a stale update offer.
 			if ( isset( $transient->response[ $plugin ] ) ) {
 				unset( $transient->response[ $plugin ] );
 			}
@@ -197,8 +209,6 @@ class F2F_AI_Chatbot_Updater {
 	}
 
 	/**
-	 * Plugin details modal in WP admin.
-	 *
 	 * @param mixed  $result Result.
 	 * @param string $action Action.
 	 * @param object $args   Args.
@@ -218,18 +228,18 @@ class F2F_AI_Chatbot_Updater {
 		}
 
 		return (object) array(
-			'name'           => $remote['name'],
-			'slug'           => 'f2f-ai-chatbot',
-			'version'        => $remote['version'],
-			'author'         => '<a href="https://www.f2fbilisim.com">F2F Bilişim</a>',
-			'homepage'       => $remote['homepage'],
-			'requires'       => $remote['requires'],
-			'tested'         => $remote['tested'],
-			'requires_php'   => $remote['requires_php'],
-			'download_link'  => $remote['download_url'],
-			'trunk'          => $remote['download_url'],
-			'last_updated'   => $remote['last_updated'],
-			'sections'       => array(
+			'name'          => $remote['name'],
+			'slug'          => 'f2f-ai-chatbot',
+			'version'       => $remote['version'],
+			'author'        => '<a href="https://www.f2fbilisim.com">F2F Bilişim</a>',
+			'homepage'      => $remote['homepage'],
+			'requires'      => $remote['requires'],
+			'tested'        => $remote['tested'],
+			'requires_php'  => $remote['requires_php'],
+			'download_link' => $remote['download_url'],
+			'trunk'         => $remote['download_url'],
+			'last_updated'  => $remote['last_updated'],
+			'sections'      => array(
 				'description' => __( 'F2F lisanslı AI chatbot — keşif, lead, sohbet, WhatsApp ve e-posta bildirimi.', 'f2f-ai-chatbot' ),
 				'changelog'   => $remote['changelog'] ? $remote['changelog'] : '<p>' . esc_html( $remote['version'] ) . '</p>',
 			),

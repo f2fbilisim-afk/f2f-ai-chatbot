@@ -3,7 +3,7 @@
  * Plugin Name:       F2F AI Chatbot
  * Plugin URI:        https://www.f2fbilisim.com
  * Description:       F2F lisanslı AI chatbot — Starter/Business/Pro paket + 1 yıl. OpenAI anahtarı müşteri panelinde yoktur.
- * Version:           1.8.1
+ * Version:           1.8.2
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            F2F Bilişim
@@ -11,7 +11,7 @@
  * License:           GPL-2.0-or-later
  * Text Domain:       f2f-ai-chatbot
  * Domain Path:       /languages
- * Update URI:        https://www.f2fbilisim.com/updates/f2f-ai-chatbot.json
+ * Update URI:        https://raw.githubusercontent.com/f2fbilisim/f2f-ai-chatbot/main/updates/f2f-ai-chatbot.json
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -39,7 +39,7 @@ if ( defined( 'F2F_AI_CHATBOT_VERSION' ) || class_exists( 'F2F_AI_Chatbot_Admin'
 	return;
 }
 
-define( 'F2F_AI_CHATBOT_VERSION', '1.8.1' );
+define( 'F2F_AI_CHATBOT_VERSION', '1.8.2' );
 define( 'F2F_AI_CHATBOT_FILE', __FILE__ );
 define( 'F2F_AI_CHATBOT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'F2F_AI_CHATBOT_URL', plugin_dir_url( __FILE__ ) );
