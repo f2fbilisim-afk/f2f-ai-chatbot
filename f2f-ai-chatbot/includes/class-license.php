@@ -244,6 +244,7 @@ class F2F_AI_Chatbot_License {
 			}
 
 			self::persist_activation( $hash, $meta );
+			delete_transient( 'f2f_ai_license_status' );
 			$expires = (int) $meta['expires_at'];
 
 			if ( $expires <= $now ) {
@@ -283,6 +284,8 @@ class F2F_AI_Chatbot_License {
 		);
 		self::persist_activation( $hash, $meta );
 
+		delete_transient( 'f2f_ai_license_status' );
+
 		return array(
 			'ok'         => true,
 			'status'     => 'premium',
@@ -312,15 +315,29 @@ class F2F_AI_Chatbot_License {
 		}
 		$meta['messages_used'] = $used + 1;
 		self::persist_activation( (string) $meta['key_hash'], $meta );
+		delete_transient( 'f2f_ai_license_status' );
 		return true;
 	}
 
 	/**
 	 * Current license / premium / quota status.
 	 *
+	 * @param bool $bypass_cache Force fresh compute.
 	 * @return array<string, mixed>
 	 */
-	public static function status() {
+	public static function status( $bypass_cache = false ) {
+		static $memo = null;
+		if ( ! $bypass_cache && null !== $memo ) {
+			return $memo;
+		}
+		if ( ! $bypass_cache ) {
+			$cached = get_transient( 'f2f_ai_license_status' );
+			if ( is_array( $cached ) && isset( $cached['status'] ) ) {
+				$memo = $cached;
+				return $memo;
+			}
+		}
+
 		$s       = f2f_ai_chatbot_get_settings();
 		$license = isset( $s['license_key'] ) ? self::normalize( $s['license_key'] ) : '';
 		$meta    = self::meta();
@@ -342,7 +359,9 @@ class F2F_AI_Chatbot_License {
 		);
 
 		if ( '' === $license ) {
-			return $empty;
+			$memo = $empty;
+			set_transient( 'f2f_ai_license_status', $memo, 2 * MINUTE_IN_SECONDS );
+			return $memo;
 		}
 
 		$pkg = self::package_for_key( $license );
@@ -350,7 +369,9 @@ class F2F_AI_Chatbot_License {
 			$empty['license'] = self::mask( $license );
 			$empty['status']  = 'invalid';
 			$empty['message'] = __( 'Bu anahtar lisans havuzunda yok.', 'f2f-ai-chatbot' );
-			return $empty;
+			$memo             = $empty;
+			set_transient( 'f2f_ai_license_status', $memo, 2 * MINUTE_IN_SECONDS );
+			return $memo;
 		}
 
 		$hash = self::hash( $license );
@@ -361,7 +382,9 @@ class F2F_AI_Chatbot_License {
 				$empty['license'] = self::mask( $license );
 				$empty['status']  = isset( $activated['status'] ) ? (string) $activated['status'] : 'invalid';
 				$empty['message'] = $activated['message'];
-				return $empty;
+				$memo             = $empty;
+				set_transient( 'f2f_ai_license_status', $memo, 2 * MINUTE_IN_SECONDS );
+				return $memo;
 			}
 		}
 
@@ -374,7 +397,7 @@ class F2F_AI_Chatbot_License {
 		$label     = isset( $meta['plan_label'] ) ? (string) $meta['plan_label'] : $pkg['label'];
 
 		if ( $expires <= $now ) {
-			return array(
+			$memo = array(
 				'ok'             => false,
 				'license'        => self::mask( $license ),
 				'status'         => 'expired',
@@ -393,10 +416,12 @@ class F2F_AI_Chatbot_License {
 				'messages_used'  => $used,
 				'messages_left'  => $left,
 			);
+			set_transient( 'f2f_ai_license_status', $memo, 2 * MINUTE_IN_SECONDS );
+			return $memo;
 		}
 
 		if ( $left <= 0 ) {
-			return array(
+			$memo = array(
 				'ok'             => false,
 				'license'        => self::mask( $license ),
 				'status'         => 'exhausted',
@@ -417,9 +442,11 @@ class F2F_AI_Chatbot_License {
 				'messages_used'  => $used,
 				'messages_left'  => 0,
 			);
+			set_transient( 'f2f_ai_license_status', $memo, 2 * MINUTE_IN_SECONDS );
+			return $memo;
 		}
 
-		return array(
+		$memo = array(
 			'ok'             => true,
 			'license'        => self::mask( $license ),
 			'status'         => 'premium',
@@ -443,6 +470,8 @@ class F2F_AI_Chatbot_License {
 			'messages_left'  => $left,
 			'credits'        => $left,
 		);
+		set_transient( 'f2f_ai_license_status', $memo, 2 * MINUTE_IN_SECONDS );
+		return $memo;
 	}
 
 	/**

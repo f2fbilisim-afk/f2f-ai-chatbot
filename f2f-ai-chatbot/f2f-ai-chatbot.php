@@ -3,7 +3,7 @@
  * Plugin Name:       F2F AI Chatbot
  * Plugin URI:        https://www.f2fbilisim.com
  * Description:       F2F lisanslı AI chatbot — Starter/Business/Pro paket + 1 yıl. OpenAI anahtarı müşteri panelinde yoktur.
- * Version:           1.8.2
+ * Version:           1.8.3
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            F2F Bilişim
@@ -39,7 +39,7 @@ if ( defined( 'F2F_AI_CHATBOT_VERSION' ) || class_exists( 'F2F_AI_Chatbot_Admin'
 	return;
 }
 
-define( 'F2F_AI_CHATBOT_VERSION', '1.8.2' );
+define( 'F2F_AI_CHATBOT_VERSION', '1.8.3' );
 define( 'F2F_AI_CHATBOT_FILE', __FILE__ );
 define( 'F2F_AI_CHATBOT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'F2F_AI_CHATBOT_URL', plugin_dir_url( __FILE__ ) );
@@ -297,18 +297,28 @@ function f2f_ai_chatbot_activate() {
 		$name = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
 		if ( $name ) {
 			$defaults['bot_name']       = $name . ' Asistan';
-			$defaults['teaser_title']   = mb_strtoupper( $name );
+			$defaults['teaser_title']   = function_exists( 'mb_strtoupper' ) ? mb_strtoupper( $name ) : strtoupper( $name );
 			$defaults['teaser_message'] = 'Merhaba! ' . $name . ' hakkında size nasıl yardımcı olabilirim?';
 		}
 		add_option( 'f2f_ai_chatbot_settings', $defaults );
 	}
 	F2F_AI_Chatbot_Leads::register_post_type();
-	if ( class_exists( 'F2F_AI_Chatbot_Knowledge' ) ) {
-		F2F_AI_Chatbot_Knowledge::reindex();
+	// Defer heavy reindex — never block activation (shared hosts → 503).
+	if ( ! wp_next_scheduled( 'f2f_ai_chatbot_deferred_reindex' ) ) {
+		wp_schedule_single_event( time() + 30, 'f2f_ai_chatbot_deferred_reindex' );
 	}
 	flush_rewrite_rules();
 }
 register_activation_hook( __FILE__, 'f2f_ai_chatbot_activate' );
+
+add_action(
+	'f2f_ai_chatbot_deferred_reindex',
+	static function () {
+		if ( class_exists( 'F2F_AI_Chatbot_Knowledge' ) ) {
+			F2F_AI_Chatbot_Knowledge::reindex();
+		}
+	}
+);
 
 /**
  * Deactivation.

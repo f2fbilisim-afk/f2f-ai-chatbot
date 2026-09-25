@@ -445,7 +445,7 @@ class F2F_AI_Chatbot_Admin {
 	}
 
 	/**
-	 * Show remaining chats in the WP admin bar.
+	 * Show remaining chats in the WP admin bar (lightweight — no remote calls).
 	 *
 	 * @param \WP_Admin_Bar $bar Bar.
 	 */
@@ -453,7 +453,8 @@ class F2F_AI_Chatbot_Admin {
 		if ( ! is_admin_bar_showing() || ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
-		$lic  = class_exists( 'F2F_AI_Chatbot_Gateway' ) ? F2F_AI_Chatbot_Gateway::license_status() : array();
+		// Prefer cached status; never trigger platform HTTP from admin bar.
+		$lic = class_exists( 'F2F_AI_Chatbot_License' ) ? F2F_AI_Chatbot_License::status() : array();
 		$left = array_key_exists( 'messages_left', $lic ) ? $lic['messages_left'] : null;
 		$limit = array_key_exists( 'messages_limit', $lic ) ? $lic['messages_limit'] : null;
 		$days = array_key_exists( 'days_left', $lic ) ? $lic['days_left'] : null;

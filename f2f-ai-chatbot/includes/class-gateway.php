@@ -89,6 +89,22 @@ class F2F_AI_Chatbot_Gateway {
 	}
 
 	/**
+	 * Whether remote platform proxy is enabled.
+	 * Default OFF — calling a missing host with long timeouts exhausts PHP workers (503).
+	 *
+	 * Enable with: define('F2F_AI_PLATFORM_URL', 'https://...');
+	 * or filter f2f_ai_chatbot_use_platform → true.
+	 *
+	 * @return bool
+	 */
+	public static function platform_enabled() {
+		if ( defined( 'F2F_AI_PLATFORM_URL' ) && F2F_AI_PLATFORM_URL ) {
+			return (bool) apply_filters( 'f2f_ai_chatbot_use_platform', true );
+		}
+		return (bool) apply_filters( 'f2f_ai_chatbot_use_platform', false );
+	}
+
+	/**
 	 * Chat completion via master OpenAI key (preferred) or optional platform proxy.
 	 *
 	 * @param array<int, array>    $messages Messages.
@@ -128,9 +144,10 @@ class F2F_AI_Chatbot_Gateway {
 		$s       = f2f_ai_chatbot_get_settings();
 		$license = isset( $s['license_key'] ) ? trim( (string) $s['license_key'] ) : '';
 		$result  = null;
+		$use_plat = self::platform_enabled() && $license && ! get_transient( 'f2f_ai_platform_down' );
 
-		// Optional remote platform (when you later proxy all traffic).
-		if ( $license && apply_filters( 'f2f_ai_chatbot_prefer_platform', false ) ) {
+		// Optional remote platform (explicitly enabled only).
+		if ( $use_plat && apply_filters( 'f2f_ai_chatbot_prefer_platform', false ) ) {
 			$result = self::chat_via_platform( $license, $messages, $args );
 			if ( empty( $result['ok'] ) && empty( self::master_openai_key() ) ) {
 				return $result;
@@ -162,8 +179,8 @@ class F2F_AI_Chatbot_Gateway {
 			return $result;
 		}
 
-		// No master key on this WP install — try optional remote platform, else clear setup error.
-		if ( $license ) {
+		// Platform only when explicitly enabled — never hammer a missing host (causes 503).
+		if ( $use_plat ) {
 			$result = self::chat_via_platform( $license, $messages, $args );
 			if ( ! empty( $result['ok'] ) ) {
 				F2F_AI_Chatbot_License::consume_message();
@@ -176,7 +193,7 @@ class F2F_AI_Chatbot_Gateway {
 				'ok'    => false,
 				'error' => sprintf(
 					/* translators: %s: platform/network detail */
-					__( 'AI yanıt veremiyor: bu sitede F2F_AI_MASTER_OPENAI_KEY tanımlı değil ve platform proxy başarısız (%s). wp-config.php içine master OpenAI anahtarını ekleyin.', 'f2f-ai-chatbot' ),
+					__( 'AI yanıt veremiyor: master anahtar yok ve platform proxy başarısız (%s).', 'f2f-ai-chatbot' ),
 					$platform_err ? $platform_err : __( 'bağlantı yok', 'f2f-ai-chatbot' )
 				),
 			);
@@ -184,7 +201,7 @@ class F2F_AI_Chatbot_Gateway {
 
 		return array(
 			'ok'    => false,
-			'error' => __( 'Lisans aktif ama AI anahtarı yapılandırılmamış. wp-config.php dosyasına define(\'F2F_AI_MASTER_OPENAI_KEY\', \'sk-...\'); ekleyin.', 'f2f-ai-chatbot' ),
+			'error' => __( 'Lisans aktif ama AI anahtarı yapılandırılmamış. wp-config.php içine define(\'F2F_AI_MASTER_OPENAI_KEY\', \'sk-...\'); ekleyin (tırnakları kapatmayı unutmayın).', 'f2f-ai-chatbot' ),
 		);
 	}
 
@@ -199,12 +216,13 @@ class F2F_AI_Chatbot_Gateway {
 		$res = wp_remote_post(
 			$url,
 			array(
-				'timeout' => 45,
-				'headers' => array(
+				'timeout'     => 8,
+				'redirection' => 2,
+				'headers'     => array(
 					'Content-Type'  => 'application/json',
 					'Authorization' => 'Bearer ' . $license,
 				),
-				'body'    => wp_json_encode(
+				'body'        => wp_json_encode(
 					array(
 						'license'  => $license,
 						'site_url' => home_url( '/' ),
@@ -218,6 +236,7 @@ class F2F_AI_Chatbot_Gateway {
 		);
 
 		if ( is_wp_error( $res ) ) {
+			set_transient( 'f2f_ai_platform_down', 1, HOUR_IN_SECONDS );
 			return array(
 				'ok'    => false,
 				'error' => $res->get_error_message(),
@@ -228,11 +247,16 @@ class F2F_AI_Chatbot_Gateway {
 		$data = json_decode( (string) wp_remote_retrieve_body( $res ), true );
 
 		if ( $code < 200 || $code >= 300 || ! is_array( $data ) ) {
-			$msg = sprintf(
+			// 404/5xx: back off so workers are not exhausted.
+			if ( $code >= 400 || 0 === $code ) {
+				set_transient( 'f2f_ai_platform_down', 1, 6 * HOUR_IN_SECONDS );
+			}
+			$host = wp_parse_url( self::platform_url(), PHP_URL_HOST );
+			$msg  = sprintf(
 				/* translators: 1: http code, 2: host */
-				__( 'Platform yanıt vermedi (HTTP %1$d · %2$s). Bu endpoint henüz yoksa wp-config’e F2F_AI_MASTER_OPENAI_KEY ekleyin.', 'f2f-ai-chatbot' ),
+				__( 'Platform yanıt vermedi (HTTP %1$d · %2$s).', 'f2f-ai-chatbot' ),
 				$code ? $code : 0,
-				wp_parse_url( self::platform_url(), PHP_URL_HOST ) ? wp_parse_url( self::platform_url(), PHP_URL_HOST ) : 'platform'
+				$host ? $host : 'platform'
 			);
 			if ( is_array( $data ) && ! empty( $data['message'] ) ) {
 				$msg = (string) $data['message'];
@@ -255,6 +279,8 @@ class F2F_AI_Chatbot_Gateway {
 				'error' => __( 'Platform boş yanıt döndürdü.', 'f2f-ai-chatbot' ),
 			);
 		}
+
+		delete_transient( 'f2f_ai_platform_down' );
 
 		return array(
 			'ok'      => true,
