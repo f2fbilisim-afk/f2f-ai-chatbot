@@ -78,7 +78,31 @@
       },
       body: JSON.stringify(body || {}),
     }).then(function (res) {
-      return res.json().then(function (data) {
+      return res.text().then(function (text) {
+        var data = null;
+        if (text) {
+          try {
+            data = JSON.parse(text);
+          } catch (e) {
+            var msgBag =
+              (cfg.i18n && cfg.i18n.serverError) ||
+              'Sunucu yanıt vermedi (zaman aşımı veya PHP hatası). Sayfayı yenileyip tekrar deneyin.';
+            data = {
+              code: 'f2f_bad_response',
+              message: msgBag,
+            };
+            return { ok: false, status: res.status || 0, data: data };
+          }
+        } else {
+          var msgEmpty =
+            (cfg.i18n && cfg.i18n.serverError) ||
+            'Sunucu boş yanıt döndü. Sayfayı yenileyip tekrar deneyin.';
+          data = {
+            code: 'f2f_empty_response',
+            message: msgEmpty,
+          };
+          return { ok: false, status: res.status || 0, data: data };
+        }
         return { ok: res.ok, status: res.status, data: data };
       });
     });
@@ -527,7 +551,11 @@
         })
         .catch(function () {
           typing.remove();
-          appendBubble('error', i18n.offline || i18n.error || 'Offline', 'is-error');
+          appendBubble(
+            'error',
+            i18n.offline || 'Bağlantı kurulamadı. Sayfayı yenileyip tekrar deneyin.',
+            'is-error'
+          );
         })
         .finally(function () {
           state.busy = false;
