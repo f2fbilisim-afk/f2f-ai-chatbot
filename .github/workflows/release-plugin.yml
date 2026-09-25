@@ -1,0 +1,86 @@
+name: Release plugin update
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version without v prefix (e.g. 1.8.2). Empty = read from plugin header.'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: ver
+        run: |
+          set -euo pipefail
+          INPUT="${{ github.event.inputs.version }}"
+          if [ -n "$INPUT" ]; then
+            VERSION="$INPUT"
+          elif [[ "${GITHUB_REF_TYPE}" == "tag" && "${GITHUB_REF_NAME}" == v* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="$(grep -E '^\s*\*\s*Version:' f2f-ai-chatbot/f2f-ai-chatbot.php | head -1 | sed -E 's/.*Version:\s*//' | tr -d '[:space:]')"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: $VERSION"
+
+      - name: Sync version in plugin files
+        run: |
+          set -euo pipefail
+          V="${{ steps.ver.outputs.version }}"
+          sed -i -E "s/(\* Version:\s*)[0-9.]+/\1${V}/" f2f-ai-chatbot/f2f-ai-chatbot.php
+          sed -i -E "s/define\( 'F2F_AI_CHATBOT_VERSION', '[^']+' \);/define( 'F2F_AI_CHATBOT_VERSION', '${V}' );/" f2f-ai-chatbot/f2f-ai-chatbot.php
+          sed -i -E "s/Stable tag: [0-9.]+/Stable tag: ${V}/" f2f-ai-chatbot/readme.txt
+
+      - name: Build ZIP + update.json
+        env:
+          F2F_PUBLIC_ZIP_URL: https://github.com/${{ github.repository }}/releases/download/${{ steps.ver.outputs.tag }}/f2f-ai-chatbot.zip
+          F2F_PUBLIC_HOME: https://www.f2fbilisim.com
+        run: |
+          set -euo pipefail
+          bash tools/pack-plugin.sh
+          mkdir -p updates
+          cp -f demo/public/updates/f2f-ai-chatbot.json updates/f2f-ai-chatbot.json
+          cat updates/f2f-ai-chatbot.json
+
+      - name: Commit update manifest on main (workflow_dispatch / tag)
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main || true
+          git checkout -B main origin/main 2>/dev/null || git checkout -B main
+          mkdir -p updates
+          cp -f demo/public/updates/f2f-ai-chatbot.json updates/f2f-ai-chatbot.json
+          git add updates/f2f-ai-chatbot.json
+          if git diff --cached --quiet; then
+            echo "No manifest changes"
+          else
+            git commit -m "chore: publish update manifest ${{ steps.ver.outputs.tag }}"
+            git push origin main
+          fi
+
+      - name: Create GitHub Release with ZIP
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: F2F AI Chatbot ${{ steps.ver.outputs.tag }}
+          generate_release_notes: true
+          files: |
+            demo/public/download/f2f-ai-chatbot.zip
+            updates/f2f-ai-chatbot.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
