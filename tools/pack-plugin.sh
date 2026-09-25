@@ -9,7 +9,7 @@ JSON="$UPDATES_DIR/f2f-ai-chatbot.json"
 ROOT_JSON="$ROOT/updates/f2f-ai-chatbot.json"
 
 PUBLIC_HOME="${F2F_PUBLIC_HOME:-https://www.f2fbilisim.com}"
-GITHUB_REPO="${F2F_GITHUB_REPO:-f2fbilisim/f2f-ai-chatbot}"
+GITHUB_REPO="${F2F_GITHUB_REPO:-f2fbilisim-afk/f2f-ai-chatbot}"
 
 mkdir -p "$OUT_DIR" "$UPDATES_DIR" "$ROOT/updates"
 rm -f "$OUT"

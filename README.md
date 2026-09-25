@@ -27,12 +27,12 @@ Detay: [PRICING.md](./PRICING.md)
 ```php
 define('F2F_AI_MASTER_OPENAI_KEY', 'sk-proj-...');
 // İsteğe bağlı — GitHub repo farklıysa:
-// define('F2F_AI_GITHUB_REPO', 'f2fbilisim/f2f-ai-chatbot');
+// define('F2F_AI_GITHUB_REPO', 'f2fbilisim-afk/f2f-ai-chatbot');
 ```
 
 ## Otomatik güncelleme (GitHub)
 
-1. Bu repoyu **public** GitHub’a bağlayın (`f2fbilisim/f2f-ai-chatbot` veya kendi adınız).  
+1. Bu repoyu **public** GitHub’a bağlayın (`f2fbilisim-afk/f2f-ai-chatbot` veya kendi adınız).  
 2. Yeni sürüm yayınlamak için:
 
 ```bash
@@ -48,7 +48,7 @@ veya GitHub → Actions → **Release plugin update** → Run workflow.
 
 Manifest varsayılan URL:
 
-`https://raw.githubusercontent.com/f2fbilisim/f2f-ai-chatbot/main/updates/f2f-ai-chatbot.json`
+`https://raw.githubusercontent.com/f2fbilisim-afk/f2f-ai-chatbot/main/updates/f2f-ai-chatbot.json`
 
 Manuel paket (FTP için):
 

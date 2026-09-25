@@ -11,7 +11,7 @@
  * License:           GPL-2.0-or-later
  * Text Domain:       f2f-ai-chatbot
  * Domain Path:       /languages
- * Update URI:        https://raw.githubusercontent.com/f2fbilisim/f2f-ai-chatbot/main/updates/f2f-ai-chatbot.json
+ * Update URI:        https://raw.githubusercontent.com/f2fbilisim-afk/f2f-ai-chatbot/main/updates/f2f-ai-chatbot.json
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

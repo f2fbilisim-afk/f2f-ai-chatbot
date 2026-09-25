@@ -32,7 +32,7 @@ class F2F_AI_Chatbot_Updater {
 			return (string) F2F_AI_UPDATE_JSON;
 		}
 
-		// e.g. define('F2F_AI_GITHUB_REPO', 'f2fbilisim/f2f-ai-chatbot');
+		// e.g. define('F2F_AI_GITHUB_REPO', 'f2fbilisim-afk/f2f-ai-chatbot');
 		if ( defined( 'F2F_AI_GITHUB_REPO' ) && F2F_AI_GITHUB_REPO ) {
 			$repo = trim( (string) F2F_AI_GITHUB_REPO, '/' );
 			$branch = defined( 'F2F_AI_GITHUB_BRANCH' ) && F2F_AI_GITHUB_BRANCH
@@ -48,7 +48,7 @@ class F2F_AI_Chatbot_Updater {
 		 */
 		return (string) apply_filters(
 			'f2f_ai_chatbot_update_json',
-			'https://raw.githubusercontent.com/f2fbilisim/f2f-ai-chatbot/main/updates/f2f-ai-chatbot.json'
+			'https://raw.githubusercontent.com/f2fbilisim-afk/f2f-ai-chatbot/main/updates/f2f-ai-chatbot.json'
 		);
 	}
 
