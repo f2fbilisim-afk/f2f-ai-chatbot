@@ -1,12 +1,12 @@
 {
   "name": "F2F AI Chatbot",
   "slug": "f2f-ai-chatbot",
-  "version": "1.8.2",
-  "download_url": "https://github.com/f2fbilisim-afk/f2f-ai-chatbot/releases/download/v1.8.2/f2f-ai-chatbot.zip",
+  "version": "1.8.3",
+  "download_url": "https://github.com/f2fbilisim-afk/f2f-ai-chatbot/releases/download/v1.8.3/f2f-ai-chatbot.zip",
   "homepage": "https://www.f2fbilisim.com",
   "requires": "6.0",
   "tested": "6.7",
   "requires_php": "7.4",
   "last_updated": "2026-09-25",
-  "changelog": "<h4>1.8.2</h4><p>GitHub Releases otomatik güncelleme — F2F Bilişim.</p>"
+  "changelog": "<h4>1.8.3</h4><ul><li>Eksik platform host’una 45sn timeout ile istek atma kaldırıldı (503 / worker tükenmesi).</li><li>Platform proxy yalnızca F2F_AI_PLATFORM_URL tanımlıysa denenir; 404 sonrası backoff.</li><li>Lisans durumu cache; admin bar hafifleşti; güncelleme kontrolü 5sn + fail cache.</li><li>Aktivasyonda site taraması ertelendi.</li></ul>"
 }

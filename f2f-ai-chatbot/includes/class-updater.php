@@ -89,6 +89,7 @@ class F2F_AI_Chatbot_Updater {
 	 */
 	public function clear_cache( $upgrader = null, $options = array() ) {
 		delete_transient( self::CACHE_KEY );
+		delete_transient( self::CACHE_KEY . '_fail' );
 	}
 
 	/**
@@ -101,6 +102,9 @@ class F2F_AI_Chatbot_Updater {
 		if ( is_array( $cached ) && ! empty( $cached['version'] ) ) {
 			return $cached;
 		}
+		if ( get_transient( self::CACHE_KEY . '_fail' ) ) {
+			return null;
+		}
 
 		$url = self::manifest_url();
 		if ( ! $url ) {
@@ -110,19 +114,23 @@ class F2F_AI_Chatbot_Updater {
 		$res = wp_remote_get(
 			$url,
 			array(
-				'timeout' => 12,
-				'headers' => array(
+				'timeout'     => 5,
+				'redirection' => 2,
+				'headers'     => array(
 					'Accept' => 'application/json',
 				),
 			)
 		);
 
 		if ( is_wp_error( $res ) ) {
+			// Negative cache — avoid hammering GitHub on every admin hit.
+			set_transient( self::CACHE_KEY . '_fail', 1, 30 * MINUTE_IN_SECONDS );
 			return null;
 		}
 
 		$code = (int) wp_remote_retrieve_response_code( $res );
 		if ( $code < 200 || $code >= 300 ) {
+			set_transient( self::CACHE_KEY . '_fail', 1, 30 * MINUTE_IN_SECONDS );
 			return null;
 		}
 
