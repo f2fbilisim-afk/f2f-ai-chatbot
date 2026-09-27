@@ -349,6 +349,20 @@ const server = http.createServer(async (req, res) => {
       });
       return;
     }
+    if (req.method === 'GET' && (url.pathname === '/licenses.html' || url.pathname === '/licenses')) {
+      fs.readFile(path.join(ROOT, 'public', 'licenses.html'), (err, data) => {
+        if (err) {
+          send(res, 404, 'Not found', { 'Content-Type': 'text/plain; charset=utf-8' });
+          return;
+        }
+        send(res, 200, data, {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          Pragma: 'no-cache',
+        });
+      });
+      return;
+    }
     if (req.method === 'GET' && (url.pathname === '/updates/f2f-ai-chatbot.json' || url.pathname === '/updates/f2f-ai-chatbot-update.json')) {
       const candidates = [
         path.join(ROOT, 'public', 'updates', 'f2f-ai-chatbot.json'),
