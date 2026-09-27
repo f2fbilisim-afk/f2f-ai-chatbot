@@ -8,3 +8,7 @@ artifacts/*.zip
 demo/public/assets/*.zip
 licenses/*
 !licenses/README.md
+
+# never commit plaintext license keys
+**/F2F-LICENSE-KEYS-PRIVATE.csv
+demo/public/download/*.csv

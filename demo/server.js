@@ -30,8 +30,32 @@ const { URL } = require('url');
 const PORT = Number(process.env.PORT || 43145);
 const ROOT = __dirname;
 const PLUGIN_ASSETS = path.join(__dirname, '..', 'f2f-ai-chatbot', 'assets');
+const LICENSES_DIR = path.join(__dirname, '..', 'licenses');
 const OPENAI_KEY = process.env.OPENAI_API_KEY || '';
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+
+function loadLicenseRows() {
+  const csvPath = path.join(LICENSES_DIR, 'F2F-LICENSE-KEYS-PRIVATE.csv');
+  if (!fs.existsSync(csvPath)) return [];
+  const lines = fs.readFileSync(csvPath, 'utf8').trim().split(/\r?\n/);
+  if (lines.length < 2) return [];
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const parts = lines[i].split(',');
+    if (parts.length < 4) continue;
+    rows.push({
+      index: Number(parts[0]) || i,
+      license_key: parts[1],
+      plan: parts[2],
+      messages_limit: Number(parts[3]) || 0,
+      status: parts[4] || 'available',
+      sold_to: parts[5] || '',
+      sold_at: parts[6] || '',
+      notes: parts.slice(7).join(',') || '',
+    });
+  }
+  return rows;
+}
 
 const SITE = {
   name: 'Anadolu Makina',
@@ -370,6 +394,7 @@ const server = http.createServer(async (req, res) => {
       const candidates = [
         path.join(ROOT, 'public', 'download', rel),
         path.join(ROOT, 'public', 'assets', rel),
+        path.join(LICENSES_DIR, path.basename(rel)),
         path.join('/opt/cursor/artifacts', path.basename(rel)),
       ];
       const filePath = candidates.find((p) => fs.existsSync(p) && fs.statSync(p).isFile());
@@ -378,8 +403,9 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       const data = fs.readFileSync(filePath);
+      const isCsv = path.extname(rel).toLowerCase() === '.csv';
       const headers = {
-        'Content-Type': 'application/zip',
+        'Content-Type': isCsv ? 'text/csv; charset=utf-8' : 'application/zip',
         'Content-Disposition': `attachment; filename="${path.basename(rel)}"`,
         'Cache-Control': 'no-store, no-cache, must-revalidate',
         'Access-Control-Allow-Origin': '*',
@@ -419,6 +445,17 @@ const server = http.createServer(async (req, res) => {
         hasApiKey: Boolean(OPENAI_KEY),
         siteName: SITE.name,
       });
+      return;
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/licenses') {
+      const rows = loadLicenseRows();
+      const summary = { total: rows.length, starter: 0, business: 0, pro: 0, available: 0 };
+      for (const r of rows) {
+        if (summary[r.plan] !== undefined) summary[r.plan] += 1;
+        if (r.status === 'available') summary.available += 1;
+      }
+      sendJson(res, 200, { summary, rows });
       return;
     }
 
