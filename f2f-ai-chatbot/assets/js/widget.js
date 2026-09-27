@@ -69,43 +69,76 @@
   }
 
   function api(path, body) {
+    var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var timer = ctrl
+      ? setTimeout(function () {
+          try {
+            ctrl.abort();
+          } catch (e) {}
+        }, 35000)
+      : null;
     return fetch(restBase() + path, {
       method: 'POST',
       credentials: 'same-origin',
+      signal: ctrl ? ctrl.signal : undefined,
       headers: {
         'Content-Type': 'application/json',
         'X-WP-Nonce': cfg.nonce || '',
       },
       body: JSON.stringify(body || {}),
-    }).then(function (res) {
-      return res.text().then(function (text) {
-        var data = null;
-        if (text) {
-          try {
-            data = JSON.parse(text);
-          } catch (e) {
-            var msgBag =
+    })
+      .then(function (res) {
+        return res.text().then(function (text) {
+          var data = null;
+          if (text) {
+            try {
+              data = JSON.parse(text);
+            } catch (e) {
+              var hint = '';
+              if (res.status === 403) hint = ' (Cloudflare/WAF engeli olabilir)';
+              else if (res.status === 502 || res.status === 503 || res.status === 504)
+                hint = ' (sunucu zaman aşımı / worker dolu)';
+              else if (res.status) hint = ' (HTTP ' + res.status + ')';
+              var msgBag =
+                ((cfg.i18n && cfg.i18n.serverError) ||
+                  'Sunucu JSON döndürmedi') + hint;
+              data = {
+                code: 'f2f_bad_response',
+                message: msgBag,
+              };
+              return { ok: false, status: res.status || 0, data: data };
+            }
+          } else {
+            var msgEmpty =
               (cfg.i18n && cfg.i18n.serverError) ||
-              'Sunucu yanıt vermedi (zaman aşımı veya PHP hatası). Sayfayı yenileyip tekrar deneyin.';
+              'Sunucu boş yanıt döndü. Sayfayı yenileyip tekrar deneyin.';
+            if (res.status) msgEmpty += ' (HTTP ' + res.status + ')';
             data = {
-              code: 'f2f_bad_response',
-              message: msgBag,
+              code: 'f2f_empty_response',
+              message: msgEmpty,
             };
             return { ok: false, status: res.status || 0, data: data };
           }
-        } else {
-          var msgEmpty =
-            (cfg.i18n && cfg.i18n.serverError) ||
-            'Sunucu boş yanıt döndü. Sayfayı yenileyip tekrar deneyin.';
-          data = {
-            code: 'f2f_empty_response',
-            message: msgEmpty,
-          };
-          return { ok: false, status: res.status || 0, data: data };
-        }
-        return { ok: res.ok, status: res.status, data: data };
+          return { ok: res.ok, status: res.status, data: data };
+        });
+      })
+      .catch(function (err) {
+        var aborted = err && err.name === 'AbortError';
+        return {
+          ok: false,
+          status: 0,
+          data: {
+            code: aborted ? 'f2f_timeout' : 'f2f_network',
+            message: aborted
+              ? 'İstek zaman aşımına uğradı. Hosting OpenAI’ye çıkamıyor olabilir veya wp-config anahtarı okunmuyor.'
+              : 'Ağ hatası — sayfayı yenileyip tekrar deneyin.',
+          },
+        };
+      })
+      .then(function (out) {
+        if (timer) clearTimeout(timer);
+        return out;
       });
-    });
   }
 
   function whatsappUrl() {

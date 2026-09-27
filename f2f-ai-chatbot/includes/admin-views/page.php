@@ -213,6 +213,12 @@ $steps = array(
 				<input type="checkbox" id="wiz_enabled" value="1" <?php checked( $s['enabled'], '1' ); ?> />
 				<span><?php echo esc_html__( 'Widget’ı sitede göster', 'f2f-ai-chatbot' ); ?></span>
 			</label>
+			<div class="f2f-diag" style="margin:1rem 0;padding:0.85rem 1rem;border:1px solid #c3c4c7;background:#fff;">
+				<p style="margin:0 0 0.5rem;"><strong><?php echo esc_html__( 'OpenAI bağlantı testi (satıcı)', 'f2f-ai-chatbot' ); ?></strong></p>
+				<p style="margin:0 0 0.75rem;color:#646970;"><?php echo esc_html__( 'wp-config’teki F2F_AI_MASTER_OPENAI_KEY okunuyor mu ve sunucu api.openai.com’a çıkabiliyor mu?', 'f2f-ai-chatbot' ); ?></p>
+				<button type="button" class="button" id="f2f_openai_probe_btn"><?php echo esc_html__( 'Şimdi test et', 'f2f-ai-chatbot' ); ?></button>
+				<span id="f2f_openai_probe_status" style="margin-left:0.5rem;"></span>
+			</div>
 			<div class="f2f-panel__nav">
 				<span></span>
 				<button type="button" class="button button-primary f2f-next" data-next="2"><?php echo esc_html__( 'Kaydet ve devam', 'f2f-ai-chatbot' ); ?></button>

@@ -37,6 +37,7 @@ class F2F_AI_Chatbot_Admin {
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'admin_bar_menu', array( $this, 'admin_bar_quota' ), 100 );
 		add_action( 'wp_ajax_f2f_ai_license_quota', array( $this, 'ajax_license_quota' ) );
+		add_action( 'wp_ajax_f2f_ai_openai_probe', array( $this, 'ajax_openai_probe' ) );
 		add_action( 'wp_ajax_f2f_ai_wizard_save', array( $this, 'ajax_wizard_save' ) );
 		add_action( 'wp_ajax_f2f_ai_wizard_finish', array( $this, 'ajax_wizard_finish' ) );
 		add_action( 'wp_ajax_f2f_ai_notify_save', array( $this, 'ajax_notify_save' ) );
@@ -370,6 +371,43 @@ class F2F_AI_Chatbot_Admin {
 		}
 		check_ajax_referer( 'f2f_ai_admin', 'nonce' );
 		wp_send_json_success( $this->quota_payload() );
+	}
+
+	/**
+	 * Diagnose master key + OpenAI egress from this server.
+	 */
+	public function ajax_openai_probe() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => 'forbidden' ), 403 );
+		}
+		check_ajax_referer( 'f2f_ai_admin', 'nonce' );
+
+		$has = (bool) F2F_AI_Chatbot_Gateway::master_openai_key();
+		$out = array(
+			'plugin'         => F2F_AI_CHATBOT_VERSION,
+			'has_master_key' => $has,
+			'openai_probe'   => null,
+		);
+		if ( ! $has ) {
+			$out['message'] = __( 'wp-config.php içinde F2F_AI_MASTER_OPENAI_KEY yok veya boş.', 'f2f-ai-chatbot' );
+			wp_send_json_success( $out );
+		}
+		$ping = F2F_AI_Chatbot_OpenAI::ping( F2F_AI_Chatbot_Gateway::master_openai_key() );
+		$out['openai_probe'] = $ping;
+		if ( ! empty( $ping['ok'] ) ) {
+			$out['message'] = sprintf(
+				/* translators: %d: ms */
+				__( 'Anahtar okundu · OpenAI erişimi OK (%d ms).', 'f2f-ai-chatbot' ),
+				isset( $ping['latency_ms'] ) ? (int) $ping['latency_ms'] : 0
+			);
+		} else {
+			$out['message'] = sprintf(
+				/* translators: %s: error */
+				__( 'Anahtar var ama OpenAI’ye ulaşılamadı: %s', 'f2f-ai-chatbot' ),
+				isset( $ping['error'] ) ? (string) $ping['error'] : '?'
+			);
+		}
+		wp_send_json_success( $out );
 	}
 
 	/**

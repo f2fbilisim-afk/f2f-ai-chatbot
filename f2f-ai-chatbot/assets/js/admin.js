@@ -394,6 +394,31 @@
         });
     });
 
+    $('#f2f_openai_probe_btn').on('click', function () {
+      var $btn = $(this);
+      var $st = $('#f2f_openai_probe_status');
+      $btn.prop('disabled', true);
+      $st.removeClass('is-error').text('Test ediliyor…');
+      $.post(f2fAiAdmin.ajaxUrl, {
+        action: 'f2f_ai_openai_probe',
+        nonce: f2fAiAdmin.nonce,
+      })
+        .done(function (res) {
+          if (res && res.success && res.data) {
+            var ok = res.data.has_master_key && res.data.openai_probe && res.data.openai_probe.ok;
+            $st.toggleClass('is-error', !ok).text(res.data.message || 'OK');
+          } else {
+            $st.addClass('is-error').text('Test başarısız');
+          }
+        })
+        .fail(function () {
+          $st.addClass('is-error').text('İstek başarısız');
+        })
+        .always(function () {
+          $btn.prop('disabled', false);
+        });
+    });
+
     var $card = $('#f2f_quota_card');
     if ($card.length) {
       startCountdown($card.attr('data-expires-at'), $card.attr('data-server-now'));

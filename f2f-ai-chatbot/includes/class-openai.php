@@ -49,22 +49,24 @@ class F2F_AI_Chatbot_OpenAI {
 		$response = wp_remote_post(
 			self::ENDPOINT,
 			array(
-				'timeout' => 45,
-				'headers' => array(
+				'timeout'   => 15,
+				'sslverify' => true,
+				'headers'   => array(
 					'Authorization' => 'Bearer ' . $api_key,
 					'Content-Type'  => 'application/json',
 				),
-				'body'    => wp_json_encode( $body ),
+				'body'      => wp_json_encode( $body ),
 			)
 		);
 
 		if ( is_wp_error( $response ) ) {
+			$err = $response->get_error_message();
 			return array(
 				'ok'    => false,
 				'error' => sprintf(
 					/* translators: %s: error message */
-					__( 'OpenAI bağlantı hatası: %s', 'f2f-ai-chatbot' ),
-					$response->get_error_message()
+					__( 'OpenAI’ye ulaşılamadı (%s). Hosting’in api.openai.com çıkışına izin verdiğini kontrol edin.', 'f2f-ai-chatbot' ),
+					$err
 				),
 			);
 		}
@@ -106,5 +108,57 @@ class F2F_AI_Chatbot_OpenAI {
 		}
 
 		return $result;
+	}
+
+	/**
+	 * Quick connectivity probe (models list).
+	 *
+	 * @param string $api_key Key.
+	 * @return array{ok:bool, error?:string, latency_ms?:int, http?:int}
+	 */
+	public static function ping( $api_key ) {
+		$api_key = trim( (string) $api_key );
+		if ( '' === $api_key ) {
+			return array(
+				'ok'    => false,
+				'error' => 'empty_key',
+			);
+		}
+		$t0  = microtime( true );
+		$res = wp_remote_get(
+			'https://api.openai.com/v1/models',
+			array(
+				'timeout'   => 8,
+				'sslverify' => true,
+				'headers'   => array(
+					'Authorization' => 'Bearer ' . $api_key,
+				),
+			)
+		);
+		$ms = (int) round( ( microtime( true ) - $t0 ) * 1000 );
+		if ( is_wp_error( $res ) ) {
+			return array(
+				'ok'         => false,
+				'error'      => $res->get_error_message(),
+				'latency_ms' => $ms,
+			);
+		}
+		$code = (int) wp_remote_retrieve_response_code( $res );
+		if ( $code < 200 || $code >= 300 ) {
+			$body = json_decode( (string) wp_remote_retrieve_body( $res ), true );
+			$msg  = is_array( $body ) && isset( $body['error']['message'] )
+				? (string) $body['error']['message']
+				: ( 'HTTP ' . $code );
+			return array(
+				'ok'         => false,
+				'error'      => $msg,
+				'latency_ms' => $ms,
+				'http'       => $code,
+			);
+		}
+		return array(
+			'ok'         => true,
+			'latency_ms' => $ms,
+		);
 	}
 }
