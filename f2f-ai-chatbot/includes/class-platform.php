@@ -120,10 +120,23 @@ class F2F_AI_Chatbot_Platform {
 	public function handle_chat( $request ) {
 		$master = F2F_AI_Chatbot_Gateway::master_openai_key();
 		if ( ! $master ) {
-			return new WP_Error(
-				'f2f_hub_no_key',
-				__( 'Platform hub: F2F_AI_MASTER_OPENAI_KEY eksik.', 'f2f-ai-chatbot' ),
-				array( 'status' => 503 )
+			return rest_ensure_response(
+				array(
+					'ok'      => false,
+					'error'   => __( 'Platform hub: F2F_AI_MASTER_OPENAI_KEY eksik.', 'f2f-ai-chatbot' ),
+					'code'    => 'f2f_hub_no_key',
+					'message' => __( 'Platform hub: F2F_AI_MASTER_OPENAI_KEY eksik.', 'f2f-ai-chatbot' ),
+				)
+			);
+		}
+		if ( ! F2F_AI_Chatbot_Gateway::master_key_looks_valid() ) {
+			return rest_ensure_response(
+				array(
+					'ok'      => false,
+					'error'   => __( 'Hub wp-config’te yanlış anahtar var: F2F-… lisans değil, OpenAI sk-… anahtarı olmalı (platform.openai.com).', 'f2f-ai-chatbot' ),
+					'code'    => 'f2f_hub_bad_key',
+					'message' => __( 'Hub wp-config’te yanlış anahtar var: F2F-… lisans değil, OpenAI sk-… anahtarı olmalı (platform.openai.com).', 'f2f-ai-chatbot' ),
+				)
 			);
 		}
 
