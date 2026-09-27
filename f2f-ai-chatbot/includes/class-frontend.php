@@ -83,7 +83,7 @@ class F2F_AI_Chatbot_Frontend {
 			'thinking'   => __( 'Ajan yazıyor...', 'f2f-ai-chatbot' ),
 			'error'      => __( 'Bir hata oluştu. Tekrar deneyin.', 'f2f-ai-chatbot' ),
 			'offline'    => __( 'Bağlantı kurulamadı. Sayfayı yenileyip tekrar deneyin.', 'f2f-ai-chatbot' ),
-			'serverError'=> __( 'Sunucu yanıt vermedi (zaman aşımı veya yapılandırma). F2F_AI_MASTER_OPENAI_KEY ve site REST API’sini kontrol edin.', 'f2f-ai-chatbot' ),
+			'serverError'=> __( 'Sunucu JSON döndürmedi — zaman aşımı, Cloudflare veya PHP hatası olabilir.', 'f2f-ai-chatbot' ),
 			'required'   => __( 'Lütfen tüm alanları doldurun.', 'f2f-ai-chatbot' ),
 		);
 

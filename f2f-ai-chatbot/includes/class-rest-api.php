@@ -75,6 +75,18 @@ class F2F_AI_Chatbot_REST_API {
 				'permission_callback' => array( $this, 'permission' ),
 			)
 		);
+
+		register_rest_route(
+			self::NS,
+			'/status',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( $this, 'handle_status' ),
+				'permission_callback' => static function () {
+					return current_user_can( 'manage_options' );
+				},
+			)
+		);
 	}
 
 	/**
@@ -102,6 +114,32 @@ class F2F_AI_Chatbot_REST_API {
 	 */
 	public function handle_config() {
 		return rest_ensure_response( f2f_ai_chatbot_public_config() );
+	}
+
+	/**
+	 * Admin diagnostics — master key present? OpenAI reachable?
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response
+	 */
+	public function handle_status( $request ) {
+		$has_key = (bool) F2F_AI_Chatbot_Gateway::master_openai_key();
+		$ping    = null;
+		$probe   = (string) $request->get_param( 'probe' );
+		if ( $has_key && '1' === $probe ) {
+			$ping = F2F_AI_Chatbot_OpenAI::ping( F2F_AI_Chatbot_Gateway::master_openai_key() );
+		}
+		$lic = F2F_AI_Chatbot_Gateway::license_status();
+		return rest_ensure_response(
+			array(
+				'plugin'         => F2F_AI_CHATBOT_VERSION,
+				'has_master_key' => $has_key,
+				'license_ok'     => ! empty( $lic['can_chat'] ),
+				'license_status' => isset( $lic['status'] ) ? (string) $lic['status'] : '',
+				'openai_probe'   => $ping,
+				'rest_ok'        => true,
+			)
+		);
 	}
 
 	/**
@@ -163,6 +201,10 @@ class F2F_AI_Chatbot_REST_API {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function handle_chat( $request ) {
+		if ( function_exists( 'set_time_limit' ) ) {
+			@set_time_limit( 45 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+		}
+
 		$settings = f2f_ai_chatbot_get_settings();
 		$message  = trim( (string) $request->get_param( 'message' ) );
 
@@ -171,6 +213,15 @@ class F2F_AI_Chatbot_REST_API {
 		}
 		if ( mb_strlen( $message ) > 2000 ) {
 			return new WP_Error( 'f2f_long', __( 'Mesaj çok uzun.', 'f2f-ai-chatbot' ), array( 'status' => 400 ) );
+		}
+
+		// Fail fast with JSON — never hang waiting for a missing key / blocked egress.
+		if ( ! F2F_AI_Chatbot_Gateway::master_openai_key() ) {
+			return new WP_Error(
+				'f2f_no_master_key',
+				__( 'wp-config.php içinde F2F_AI_MASTER_OPENAI_KEY tanımlı değil veya boş. /* That\'s all */ satırının ÜSTÜNE define(\'F2F_AI_MASTER_OPENAI_KEY\', \'sk-...\'); ekleyin.', 'f2f-ai-chatbot' ),
+				array( 'status' => 503 )
+			);
 		}
 
 		$rate = $this->check_rate_limit( (int) $settings['rate_limit'] );

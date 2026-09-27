@@ -1,12 +1,12 @@
 {
   "name": "F2F AI Chatbot",
   "slug": "f2f-ai-chatbot",
-  "version": "1.8.4",
-  "download_url": "https://github.com/f2fbilisim-afk/f2f-ai-chatbot/releases/download/v1.8.4/f2f-ai-chatbot.zip",
+  "version": "1.8.5",
+  "download_url": "https://github.com/f2fbilisim-afk/f2f-ai-chatbot/releases/download/v1.8.5/f2f-ai-chatbot.zip",
   "homepage": "https://www.f2fbilisim.com",
   "requires": "6.0",
   "tested": "6.7",
   "requires_php": "7.4",
-  "last_updated": "2026-09-25",
-  "changelog": "<h4>1.8.4</h4><ul><li>platform.f2fbilisim.com tamamen kaldırıldı — örnek URL yanlışlıkla koda girmişti.</li><li>Sohbet yalnızca wp-config F2F_AI_MASTER_OPENAI_KEY → OpenAI.</li></ul>"
+  "last_updated": "2026-09-27",
+  "changelog": "<h4>1.8.5</h4><ul><li>OpenAI bağlantı testi (admin) + net hata mesajları.</li><li>Master key yoksa hızlı JSON hata; OpenAI timeout 15sn.</li><li>Widget HTTP/timeout bilgisini gösterir.</li></ul>"
 }

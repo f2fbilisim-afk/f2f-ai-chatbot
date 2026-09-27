@@ -344,7 +344,7 @@ class F2F_AI_Chatbot_Knowledge {
 		}
 		$rules .= "- Paneldeki hizmet etiketleri: {$services_line}\n";
 
-		$knowledge = self::context_for_prompt( $query, 10000 );
+		$knowledge = self::context_for_prompt( $query, 4000 );
 		if ( $knowledge ) {
 			$rules .= "\n--- SİTE BİLGİ BANKASI ---\n" . $knowledge . "\n--- BİLGİ BANKASI SONU ---\n";
 		} else {
