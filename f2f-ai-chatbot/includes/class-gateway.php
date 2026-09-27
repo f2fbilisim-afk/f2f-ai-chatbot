@@ -210,6 +210,20 @@ class F2F_AI_Chatbot_Gateway {
 		$raw  = (string) wp_remote_retrieve_body( $res );
 		$data = json_decode( $raw, true );
 
+		// Hub may return HTTP 200 with ok:false (avoids Cloudflare swallowing 502).
+		if ( is_array( $data ) && array_key_exists( 'ok', $data ) && empty( $data['ok'] ) ) {
+			$msg = '';
+			if ( ! empty( $data['error'] ) ) {
+				$msg = (string) $data['error'];
+			} elseif ( ! empty( $data['message'] ) ) {
+				$msg = (string) $data['message'];
+			}
+			return array(
+				'ok'    => false,
+				'error' => $msg ? $msg : __( 'Platform sohbet hatası.', 'f2f-ai-chatbot' ),
+			);
+		}
+
 		if ( $code < 200 || $code >= 300 || ! is_array( $data ) ) {
 			if ( $code >= 500 || 0 === $code || 404 === $code ) {
 				set_transient( 'f2f_ai_platform_down', 1, 10 * MINUTE_IN_SECONDS );
@@ -224,9 +238,9 @@ class F2F_AI_Chatbot_Gateway {
 					$msg = (string) $data['message'];
 				} elseif ( ! empty( $data['error'] ) && is_string( $data['error'] ) ) {
 					$msg = (string) $data['error'];
-				} elseif ( ! empty( $data['code'] ) && ! empty( $data['message'] ) ) {
-					$msg = (string) $data['message'];
 				}
+			} elseif ( is_string( $raw ) && false !== stripos( $raw, 'error code: 502' ) ) {
+				$msg = __( 'Hub OpenAI çağrısı başarısız (Cloudflare 502). f2fbilisim.com’da OpenAI anahtarı / bakiyesi / api.openai.com çıkışını kontrol edin.', 'f2f-ai-chatbot' );
 			}
 			return array(
 				'ok'    => false,
