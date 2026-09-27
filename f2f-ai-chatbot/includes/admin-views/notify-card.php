@@ -22,7 +22,7 @@ $on_sum  = isset( $s['notify_on_summary'] ) ? (string) $s['notify_on_summary'] :
 			<p class="f2f-mail-card__eyebrow"><?php echo esc_html__( 'Otomatik bildirim', 'f2f-ai-chatbot' ); ?></p>
 			<h2 id="<?php echo esc_attr( $prefix ); ?>_title"><?php echo esc_html__( 'Lead e-posta ayarı', 'f2f-ai-chatbot' ); ?></h2>
 			<p class="f2f-mail-card__lede">
-				<?php echo esc_html__( 'Ziyaretçi chat box’a bilgilerini girdiğinde, aşağıdaki kutuya yazdığınız e-posta adresine bu bilgiler otomatik olarak gönderilir.', 'f2f-ai-chatbot' ); ?>
+				<?php echo esc_html__( 'Form ve konuşma kayıtları aşağıdaki adrese gider. Konuşma özeti mailinde sohbet metni de yer alır.', 'f2f-ai-chatbot' ); ?>
 			</p>
 		</div>
 	</div>
@@ -45,14 +45,20 @@ $on_sum  = isset( $s['notify_on_summary'] ) ? (string) $s['notify_on_summary'] :
 			</label>
 			<label class="f2f-mail-card__check">
 				<input type="checkbox" id="<?php echo esc_attr( $prefix ); ?>_on_summary" value="1" <?php checked( $on_sum, '1' ); ?> />
-				<span><?php echo esc_html__( 'Konuşma özeti hazır olunca tekrar mail gönder', 'f2f-ai-chatbot' ); ?></span>
+				<span><?php echo esc_html__( 'Konuşma özeti + sohbet kaydı hazır olunca mail gönder', 'f2f-ai-chatbot' ); ?></span>
 			</label>
 		</div>
 		<div class="f2f-mail-card__actions">
 			<button type="button" class="button button-primary f2f-mail-card__save" id="<?php echo esc_attr( $prefix ); ?>_save" data-prefix="<?php echo esc_attr( $prefix ); ?>">
 				<?php echo esc_html__( 'E-posta ayarını kaydet', 'f2f-ai-chatbot' ); ?>
 			</button>
+			<button type="button" class="button f2f-mail-card__test" id="<?php echo esc_attr( $prefix ); ?>_test" data-prefix="<?php echo esc_attr( $prefix ); ?>">
+				<?php echo esc_html__( 'Test maili gönder', 'f2f-ai-chatbot' ); ?>
+			</button>
 			<span class="f2f-mail-card__status" id="<?php echo esc_attr( $prefix ); ?>_status" hidden></span>
 		</div>
+		<p class="f2f-mail-card__inline-hint">
+			<?php echo esc_html__( 'Gönderen adresi sitenizin kendi alan adından üretilir (wordpress@alanadiniz.com). Spam klasörünü kontrol edin; gelmezse hosting SMTP eklentisi gerekir.', 'f2f-ai-chatbot' ); ?>
+		</p>
 	</div>
 </section>

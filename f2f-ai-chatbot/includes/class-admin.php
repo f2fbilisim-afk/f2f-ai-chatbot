@@ -41,6 +41,7 @@ class F2F_AI_Chatbot_Admin {
 		add_action( 'wp_ajax_f2f_ai_wizard_save', array( $this, 'ajax_wizard_save' ) );
 		add_action( 'wp_ajax_f2f_ai_wizard_finish', array( $this, 'ajax_wizard_finish' ) );
 		add_action( 'wp_ajax_f2f_ai_notify_save', array( $this, 'ajax_notify_save' ) );
+		add_action( 'wp_ajax_f2f_ai_notify_test', array( $this, 'ajax_notify_test' ) );
 		add_filter( 'plugin_action_links_' . plugin_basename( F2F_AI_CHATBOT_FILE ), array( $this, 'action_links' ) );
 	}
 
@@ -281,6 +282,8 @@ class F2F_AI_Chatbot_Admin {
 					'saving'      => __( 'Kaydediliyor…', 'f2f-ai-chatbot' ),
 					'saved'       => __( 'Kaydedildi', 'f2f-ai-chatbot' ),
 					'saveFail'    => __( 'Kayıt başarısız.', 'f2f-ai-chatbot' ),
+					'testing'     => __( 'Test maili gönderiliyor…', 'f2f-ai-chatbot' ),
+					'testFail'    => __( 'Test maili gönderilemedi.', 'f2f-ai-chatbot' ),
 					'needLicense' => __( 'Devam etmek için geçerli bir lisans anahtarı girin.', 'f2f-ai-chatbot' ),
 				),
 			)
@@ -342,6 +345,33 @@ class F2F_AI_Chatbot_Admin {
 				'recipient'         => class_exists( 'F2F_AI_Chatbot_Notify' ) ? F2F_AI_Chatbot_Notify::recipient() : $clean['notify_email'],
 			)
 		);
+	}
+
+	/**
+	 * Send a test notification to the configured (or posted) inbox.
+	 */
+	public function ajax_notify_test() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => 'forbidden' ), 403 );
+		}
+		check_ajax_referer( 'f2f_ai_admin', 'nonce' );
+
+		$email = isset( $_POST['notify_email'] ) ? sanitize_email( wp_unslash( $_POST['notify_email'] ) ) : '';
+		if ( $email && is_email( $email ) ) {
+			$current                 = f2f_ai_chatbot_get_settings();
+			$current['notify_email'] = $email;
+			update_option( self::OPTION, $current, false );
+		}
+
+		if ( ! class_exists( 'F2F_AI_Chatbot_Notify' ) ) {
+			wp_send_json_error( array( 'message' => 'notify missing' ), 500 );
+		}
+
+		$result = F2F_AI_Chatbot_Notify::send_test( $email );
+		if ( ! empty( $result['ok'] ) ) {
+			wp_send_json_success( $result );
+		}
+		wp_send_json_error( $result, 500 );
 	}
 
 	/**

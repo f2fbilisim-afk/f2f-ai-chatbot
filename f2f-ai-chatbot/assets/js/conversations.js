@@ -77,6 +77,50 @@
         });
     });
 
+    $(document).on('click', '.f2f-mail-card__test', function (e) {
+      e.preventDefault();
+      if (!window.f2fAiConv) return;
+      var prefix = $(this).data('prefix') || 'f2f_mail';
+      var $status = $('#' + prefix + '_status');
+      var $btn = $(this);
+      $btn.prop('disabled', true);
+      $status
+        .prop('hidden', false)
+        .removeClass('is-error')
+        .text(f2fAiConv.i18n.mailTesting || 'Test…');
+      $.post(f2fAiConv.ajaxUrl, {
+        action: 'f2f_ai_notify_test',
+        nonce: f2fAiConv.notifyNonce,
+        notify_email: $('#' + prefix + '_email').val() || '',
+      })
+        .done(function (res) {
+          if (res && res.success && res.data) {
+            $status.text(res.data.message || 'OK');
+            toast(res.data.message || 'OK', false);
+          } else {
+            var msg =
+              (res && res.data && res.data.message) ||
+              f2fAiConv.i18n.mailTestFail ||
+              'Hata';
+            $status.addClass('is-error').text(msg);
+            toast(msg, true);
+          }
+        })
+        .fail(function (xhr) {
+          var msg = f2fAiConv.i18n.mailTestFail || 'Hata';
+          try {
+            if (xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) {
+              msg = xhr.responseJSON.data.message;
+            }
+          } catch (err) {}
+          $status.addClass('is-error').text(msg);
+          toast(msg, true);
+        })
+        .always(function () {
+          $btn.prop('disabled', false);
+        });
+    });
+
     $('.f2f-conv__status').on('change', function () {
       var $el = $(this);
       var $card = $el.closest('.f2f-lead-card');

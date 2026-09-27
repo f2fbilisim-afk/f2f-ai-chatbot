@@ -1,12 +1,12 @@
 {
   "name": "F2F AI Chatbot",
   "slug": "f2f-ai-chatbot",
-  "version": "1.9.3",
-  "download_url": "https://github.com/f2fbilisim-afk/f2f-ai-chatbot/releases/download/v1.9.3/f2f-ai-chatbot.zip",
+  "version": "1.9.4",
+  "download_url": "https://github.com/f2fbilisim-afk/f2f-ai-chatbot/releases/download/v1.9.4/f2f-ai-chatbot.zip",
   "homepage": "https://www.f2fbilisim.com",
   "requires": "6.0",
   "tested": "6.7",
   "requires_php": "7.4",
   "last_updated": "2026-09-27",
-  "changelog": "<h4>1.9.3</h4><p>Hub’da F2F lisansının OpenAI anahtarı sanılması yakalanır; platform kilit süresi kısaldı.</p>"
+  "changelog": "<h4>1.9.4</h4><p>Bildirim mailleri site alan ad\u0131ndan g\u00f6nderilir (SPF reddi giderildi); konu\u015fma kayd\u0131 \u00f6zet mailine eklenir; test maili ve WP-Cron yedek tetikleyici.</p>"
 }

@@ -394,6 +394,47 @@
         });
     });
 
+    $(document).on('click', '.f2f-mail-card__test', function (e) {
+      e.preventDefault();
+      if (!window.f2fAiAdmin) return;
+      var prefix = $(this).data('prefix') || 'f2f_mail';
+      var $status = $('#' + prefix + '_status');
+      var $btn = $(this);
+      $btn.prop('disabled', true);
+      $status
+        .prop('hidden', false)
+        .removeClass('is-error')
+        .text(f2fAiAdmin.i18n.testing || 'Test…');
+      $.post(f2fAiAdmin.ajaxUrl, {
+        action: 'f2f_ai_notify_test',
+        nonce: f2fAiAdmin.nonce,
+        notify_email: $('#' + prefix + '_email').val() || '',
+      })
+        .done(function (res) {
+          if (res && res.success && res.data) {
+            $status.text(res.data.message || f2fAiAdmin.i18n.saved);
+          } else {
+            var msg =
+              (res && res.data && res.data.message) ||
+              f2fAiAdmin.i18n.testFail ||
+              'Hata';
+            $status.addClass('is-error').text(msg);
+          }
+        })
+        .fail(function (xhr) {
+          var msg = f2fAiAdmin.i18n.testFail || 'Hata';
+          try {
+            if (xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) {
+              msg = xhr.responseJSON.data.message;
+            }
+          } catch (err) {}
+          $status.addClass('is-error').text(msg);
+        })
+        .always(function () {
+          $btn.prop('disabled', false);
+        });
+    });
+
     $('#f2f_openai_probe_btn').on('click', function () {
       var $btn = $(this);
       var $st = $('#f2f_openai_probe_status');

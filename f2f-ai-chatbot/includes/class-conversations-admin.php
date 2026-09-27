@@ -186,6 +186,8 @@ class F2F_AI_Chatbot_Conversations_Admin {
 					'mailSaving' => __( 'Kaydediliyor…', 'f2f-ai-chatbot' ),
 					'mailSaved'  => __( 'E-posta ayarı kaydedildi', 'f2f-ai-chatbot' ),
 					'mailFail'   => __( 'E-posta ayarı kaydedilemedi', 'f2f-ai-chatbot' ),
+					'mailTesting'=> __( 'Test maili gönderiliyor…', 'f2f-ai-chatbot' ),
+					'mailTestFail'=> __( 'Test maili gönderilemedi', 'f2f-ai-chatbot' ),
 				),
 			)
 		);

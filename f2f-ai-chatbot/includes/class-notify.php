@@ -10,23 +10,45 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Sends HTML mail from noreply@f2fbilisim.com to the site owner's notify_email.
+ * Sends HTML mail to the site owner's notify_email.
+ *
+ * From address uses the customer site domain (not noreply@f2fbilisim.com)
+ * so shared hosts / SPF do not reject the message.
  */
 class F2F_AI_Chatbot_Notify {
 
-	const FROM_EMAIL = 'noreply@f2fbilisim.com';
-	const FROM_NAME  = 'F2F AI Chatbot';
+	const FROM_NAME = 'F2F AI Chatbot';
 
 	/**
+	 * Prefer a From address on the site's own domain.
+	 * Foreign From (noreply@f2fbilisim.com) is rejected by most hosts.
+	 *
 	 * @return string
 	 */
 	public static function from_email() {
-		/**
-		 * Filter notification From address.
-		 *
-		 * @param string $email Email.
-		 */
-		return (string) apply_filters( 'f2f_ai_chatbot_notify_from_email', self::FROM_EMAIL );
+		$host = wp_parse_url( home_url(), PHP_URL_HOST );
+		$host = is_string( $host ) ? strtolower( preg_replace( '/^www\./', '', $host ) ) : '';
+
+		$candidate = '';
+		if ( $host && false === strpos( $host, 'localhost' ) && false !== strpos( $host, '.' ) ) {
+			$candidate = 'wordpress@' . $host;
+		}
+
+		if ( $candidate && is_email( $candidate ) ) {
+			/**
+			 * Filter notification From address.
+			 *
+			 * @param string $email Email.
+			 */
+			return (string) apply_filters( 'f2f_ai_chatbot_notify_from_email', $candidate );
+		}
+
+		$admin = get_option( 'admin_email' );
+		if ( is_email( $admin ) ) {
+			return (string) apply_filters( 'f2f_ai_chatbot_notify_from_email', $admin );
+		}
+
+		return (string) apply_filters( 'f2f_ai_chatbot_notify_from_email', 'wordpress@localhost' );
 	}
 
 	/**
@@ -73,6 +95,10 @@ class F2F_AI_Chatbot_Notify {
 		if ( ! $to ) {
 			return false;
 		}
+		if ( '1' === (string) get_post_meta( $lead_id, '_f2f_notify_lead_sent', true ) ) {
+			return false;
+		}
+
 		$payload = self::lead_payload( $lead_id );
 		if ( ! $payload ) {
 			return false;
@@ -88,16 +114,21 @@ class F2F_AI_Chatbot_Notify {
 
 		$body = self::render_html(
 			__( 'Yeni lead geldi', 'f2f-ai-chatbot' ),
-			__( 'Panele yeni bir kayıt düştü. Özet sohbet bitince (yaklaşık 2 dk) ayrıca gönderilir.', 'f2f-ai-chatbot' ),
+			__( 'Panele yeni bir kayıt düştü. Konuşma bitince (yaklaşık 2 dk) özet + sohbet kaydı ayrıca gönderilir.', 'f2f-ai-chatbot' ),
 			$payload,
+			false,
 			false
 		);
 
-		return self::mail( $to, $subject, $body, $payload['email'] );
+		$ok = self::mail( $to, $subject, $body, $payload['email'] );
+		if ( $ok ) {
+			update_post_meta( $lead_id, '_f2f_notify_lead_sent', '1' );
+		}
+		return $ok;
 	}
 
 	/**
-	 * Mail after AI summary is ready.
+	 * Mail after AI summary is ready — includes conversation transcript.
 	 *
 	 * @param int $lead_id Lead ID.
 	 * @return bool
@@ -110,6 +141,10 @@ class F2F_AI_Chatbot_Notify {
 		if ( ! $to ) {
 			return false;
 		}
+		if ( '1' === (string) get_post_meta( $lead_id, '_f2f_notify_summary_sent', true ) ) {
+			return false;
+		}
+
 		$payload = self::lead_payload( $lead_id );
 		if ( ! $payload ) {
 			return false;
@@ -118,19 +153,80 @@ class F2F_AI_Chatbot_Notify {
 		$site    = $payload['site'];
 		$subject = sprintf(
 			/* translators: 1: site 2: interest */
-			__( '[%1$s] Lead özeti: %2$s', 'f2f-ai-chatbot' ),
+			__( '[%1$s] Lead özeti + konuşma: %2$s', 'f2f-ai-chatbot' ),
 			$site,
 			$payload['interest'] ? $payload['interest'] : $payload['name']
 		);
 
 		$body = self::render_html(
 			__( 'Konuşma özeti hazır', 'f2f-ai-chatbot' ),
-			__( 'AI özeti oluştu. Satış ekibi bu kayıttan dönüş yapabilir.', 'f2f-ai-chatbot' ),
+			__( 'AI özeti ve sohbet kaydı aşağıda. Satış ekibi bu kayıttan dönüş yapabilir.', 'f2f-ai-chatbot' ),
 			$payload,
+			true,
 			true
 		);
 
-		return self::mail( $to, $subject, $body, $payload['email'] );
+		$ok = self::mail( $to, $subject, $body, $payload['email'] );
+		if ( $ok ) {
+			update_post_meta( $lead_id, '_f2f_notify_summary_sent', '1' );
+		}
+		return $ok;
+	}
+
+	/**
+	 * Send a test message to the configured (or given) inbox.
+	 *
+	 * @param string $to Optional override recipient.
+	 * @return array{ok:bool, to:string, from:string, message:string}
+	 */
+	public static function send_test( $to = '' ) {
+		$to = is_email( $to ) ? (string) $to : self::recipient();
+		if ( ! $to ) {
+			return array(
+				'ok'      => false,
+				'to'      => '',
+				'from'    => self::from_email(),
+				'message' => __( 'Geçerli bir bildirim e-postası yok.', 'f2f-ai-chatbot' ),
+			);
+		}
+
+		$site    = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
+		$subject = sprintf(
+			/* translators: %s: site name */
+			__( '[%s] F2F AI Chatbot test maili', 'f2f-ai-chatbot' ),
+			$site
+		);
+		$from = self::from_email();
+		$html = '<!DOCTYPE html><html><body style="margin:0;padding:24px;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;">'
+			. '<div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;padding:24px;border:1px solid #e5e7eb;">'
+			. '<h1 style="margin:0 0 12px;font-size:18px;color:#111827;">' . esc_html__( 'Test maili başarılı', 'f2f-ai-chatbot' ) . '</h1>'
+			. '<p style="margin:0 0 10px;color:#4b5563;font-size:14px;line-height:1.5;">'
+			. esc_html__( 'Bu mesaj eklenti bildirim ayarından gönderildi. Lead ve konuşma mailleri de aynı adrese gidecek.', 'f2f-ai-chatbot' )
+			. '</p>'
+			. '<p style="margin:0;color:#6b7280;font-size:12px;">'
+			. esc_html(
+				sprintf(
+					/* translators: 1: to 2: from */
+					__( 'Alıcı: %1$s · Gönderen: %2$s', 'f2f-ai-chatbot' ),
+					$to,
+					$from
+				)
+			)
+			. '</p></div></body></html>';
+
+		$ok = self::mail( $to, $subject, $html, '' );
+		return array(
+			'ok'      => $ok,
+			'to'      => $to,
+			'from'    => $from,
+			'message' => $ok
+				? sprintf(
+					/* translators: %s: email */
+					__( 'Test maili gönderildi: %s (spam klasörünü de kontrol edin)', 'f2f-ai-chatbot' ),
+					$to
+				)
+				: __( 'wp_mail başarısız. Hosting SMTP / e-posta eklentisi gerekebilir.', 'f2f-ai-chatbot' ),
+		);
 	}
 
 	/**
@@ -151,38 +247,55 @@ class F2F_AI_Chatbot_Notify {
 			$wa = '90' . substr( $wa, 1 );
 		}
 
+		$history = get_post_meta( $lead_id, '_f2f_history', true );
+		if ( ! is_array( $history ) ) {
+			$history = array();
+		}
+		$transcript = '';
+		foreach ( $history as $turn ) {
+			if ( ! is_array( $turn ) || empty( $turn['content'] ) ) {
+				continue;
+			}
+			$role        = ( isset( $turn['role'] ) && 'user' === $turn['role'] )
+				? __( 'Müşteri', 'f2f-ai-chatbot' )
+				: __( 'Asistan', 'f2f-ai-chatbot' );
+			$transcript .= $role . ': ' . (string) $turn['content'] . "\n";
+		}
+
 		return array(
-			'id'       => (string) $lead_id,
-			'name'     => $post->post_title,
-			'phone'    => $phone,
-			'email'    => $email,
-			'interest' => (string) get_post_meta( $lead_id, '_f2f_interest', true ),
-			'summary'  => (string) get_post_meta( $lead_id, '_f2f_summary', true ),
-			'status'   => (string) get_post_meta( $lead_id, '_f2f_status', true ),
-			'date'     => get_the_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $post ),
-			'site'     => wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ),
-			'panel'    => admin_url( 'admin.php?page=f2f-ai-conversations' ),
-			'wa'       => $wa ? 'https://wa.me/' . $wa : '',
-			'tel'      => $phone ? 'tel:' . preg_replace( '/\D+/', '', $phone ) : '',
-			'mailto'   => $email ? 'mailto:' . $email : '',
+			'id'          => (string) $lead_id,
+			'name'        => $post->post_title,
+			'phone'       => $phone,
+			'email'       => $email,
+			'interest'    => (string) get_post_meta( $lead_id, '_f2f_interest', true ),
+			'summary'     => (string) get_post_meta( $lead_id, '_f2f_summary', true ),
+			'transcript'  => trim( $transcript ),
+			'status'      => (string) get_post_meta( $lead_id, '_f2f_status', true ),
+			'date'        => get_the_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $post ),
+			'site'        => wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ),
+			'panel'       => admin_url( 'admin.php?page=f2f-ai-conversations' ),
+			'wa'          => $wa ? 'https://wa.me/' . $wa : '',
+			'tel'         => $phone ? 'tel:' . preg_replace( '/\D+/', '', $phone ) : '',
+			'mailto'      => $email ? 'mailto:' . $email : '',
 		);
 	}
 
 	/**
-	 * @param string               $title   Title.
-	 * @param string               $intro   Intro.
-	 * @param array<string,string> $p       Payload.
-	 * @param bool                 $with_summary Include summary block.
+	 * @param string               $title          Title.
+	 * @param string               $intro          Intro.
+	 * @param array<string,string> $p              Payload.
+	 * @param bool                 $with_summary   Include summary block.
+	 * @param bool                 $with_transcript Include chat transcript.
 	 * @return string
 	 */
-	private static function render_html( $title, $intro, $p, $with_summary ) {
+	private static function render_html( $title, $intro, $p, $with_summary, $with_transcript = false ) {
 		$rows = array(
-			__( 'Müşteri', 'f2f-ai-chatbot' )  => esc_html( $p['name'] ),
-			__( 'Telefon', 'f2f-ai-chatbot' )  => esc_html( $p['phone'] ? $p['phone'] : '—' ),
-			__( 'E-posta', 'f2f-ai-chatbot' )  => esc_html( $p['email'] ? $p['email'] : '—' ),
-			__( 'İlgi', 'f2f-ai-chatbot' )     => esc_html( $p['interest'] ? $p['interest'] : '—' ),
-			__( 'Tarih', 'f2f-ai-chatbot' )    => esc_html( $p['date'] ),
-			__( 'Site', 'f2f-ai-chatbot' )     => esc_html( $p['site'] ),
+			__( 'Müşteri', 'f2f-ai-chatbot' ) => esc_html( $p['name'] ),
+			__( 'Telefon', 'f2f-ai-chatbot' ) => esc_html( $p['phone'] ? $p['phone'] : '—' ),
+			__( 'E-posta', 'f2f-ai-chatbot' ) => esc_html( $p['email'] ? $p['email'] : '—' ),
+			__( 'İlgi', 'f2f-ai-chatbot' )    => esc_html( $p['interest'] ? $p['interest'] : '—' ),
+			__( 'Tarih', 'f2f-ai-chatbot' )   => esc_html( $p['date'] ),
+			__( 'Site', 'f2f-ai-chatbot' )    => esc_html( $p['site'] ),
 		);
 
 		$tr = '';
@@ -197,8 +310,25 @@ class F2F_AI_Chatbot_Notify {
 		$summary_block = '';
 		if ( $with_summary && ! empty( $p['summary'] ) ) {
 			$summary_block = '<div style="margin:16px 0 0;padding:14px 16px;background:#f8faf9;border:1px solid #e5e7eb;border-radius:12px;color:#374151;font-size:13px;line-height:1.55;white-space:pre-wrap;">'
+				. '<div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#6b7280;margin-bottom:8px;">'
+				. esc_html__( 'AI özeti', 'f2f-ai-chatbot' )
+				. '</div>'
 				. esc_html( $p['summary'] )
 				. '</div>';
+		}
+
+		$transcript_block = '';
+		if ( $with_transcript && ! empty( $p['transcript'] ) ) {
+			$transcript_block = '<div style="margin:16px 0 0;padding:14px 16px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;color:#374151;font-size:13px;line-height:1.55;white-space:pre-wrap;">'
+				. '<div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#6b7280;margin-bottom:8px;">'
+				. esc_html__( 'Konuşma kaydı', 'f2f-ai-chatbot' )
+				. '</div>'
+				. esc_html( $p['transcript'] )
+				. '</div>';
+		} elseif ( $with_transcript ) {
+			$transcript_block = '<p style="margin:16px 0 0;color:#9ca3af;font-size:12px;">'
+				. esc_html__( 'Bu kayıtta henüz sohbet mesajı yok (yalnızca form).', 'f2f-ai-chatbot' )
+				. '</p>';
 		}
 
 		$actions = '';
@@ -216,6 +346,8 @@ class F2F_AI_Chatbot_Notify {
 		$actions .= '<a href="' . esc_url( $p['panel'] ) . '" style="display:inline-block;margin:0 8px 8px 0;padding:10px 14px;border-radius:10px;background:#fff;color:#0b6e4f;border:1px solid #0b6e4f;text-decoration:none;font-weight:700;font-size:13px;">'
 			. esc_html__( 'Panele git', 'f2f-ai-chatbot' ) . '</a>';
 
+		$from_note = self::from_email();
+
 		return '<!DOCTYPE html><html><body style="margin:0;padding:24px;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;">'
 			. '<div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb;">'
 			. '<div style="padding:18px 20px;background:linear-gradient(135deg,#0f1f1a,#0b6e4f);color:#fff;">'
@@ -226,9 +358,12 @@ class F2F_AI_Chatbot_Notify {
 			. '<p style="margin:0 0 14px;color:#4b5563;font-size:14px;line-height:1.5;">' . esc_html( $intro ) . '</p>'
 			. '<table style="width:100%;border-collapse:collapse;">' . $tr . '</table>'
 			. $summary_block
+			. $transcript_block
 			. '<div style="margin-top:18px;">' . $actions . '</div>'
 			. '</div></div>'
-			. '<p style="max-width:560px;margin:14px auto 0;color:#9ca3af;font-size:11px;text-align:center;">noreply@f2fbilisim.com</p>'
+			. '<p style="max-width:560px;margin:14px auto 0;color:#9ca3af;font-size:11px;text-align:center;">'
+			. esc_html( $from_note )
+			. '</p>'
 			. '</body></html>';
 	}
 
@@ -240,7 +375,7 @@ class F2F_AI_Chatbot_Notify {
 	 * @return bool
 	 */
 	private static function mail( $to, $subject, $html, $reply_to = '' ) {
-		$from = self::from_email();
+		$from    = self::from_email();
 		$headers = array(
 			'Content-Type: text/html; charset=UTF-8',
 			'From: ' . self::FROM_NAME . ' <' . $from . '>',
@@ -251,12 +386,25 @@ class F2F_AI_Chatbot_Notify {
 
 		$filter = function ( $phpmailer ) use ( $from ) {
 			$phpmailer->setFrom( $from, self::FROM_NAME, false );
+			$phpmailer->Sender = $from;
 		};
 		add_action( 'phpmailer_init', $filter );
 
 		$ok = wp_mail( $to, $subject, $html, $headers );
 
 		remove_action( 'phpmailer_init', $filter );
+
+		update_option(
+			'f2f_ai_notify_last',
+			array(
+				'ok'      => (bool) $ok,
+				'to'      => $to,
+				'subject' => $subject,
+				'from'    => $from,
+				'at'      => time(),
+			),
+			false
+		);
 
 		/**
 		 * Fires after a notification attempt.

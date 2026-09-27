@@ -49,6 +49,7 @@ class F2F_AI_Chatbot_Leads {
 
 	private function __construct() {
 		add_action( 'init', array( __CLASS__, 'register_post_type' ) );
+		add_action( 'init', array( __CLASS__, 'maybe_process_due_summaries' ), 30 );
 		add_action( self::CRON_HOOK, array( __CLASS__, 'cron_summarize' ), 10, 1 );
 		add_action( 'wp_ajax_f2f_ai_update_lead_status', array( $this, 'ajax_update_status' ) );
 	}
@@ -183,6 +184,8 @@ class F2F_AI_Chatbot_Leads {
 		update_post_meta( $lead_id, '_f2f_message_count', $user_msgs );
 		update_post_meta( $lead_id, '_f2f_last_activity', time() );
 		update_post_meta( $lead_id, '_f2f_summarized', '0' );
+		// New messages → allow a fresh summary mail later.
+		delete_post_meta( $lead_id, '_f2f_notify_summary_sent' );
 
 		self::schedule_summary( $lead_id );
 
@@ -217,6 +220,96 @@ class F2F_AI_Chatbot_Leads {
 	 */
 	public static function cron_summarize( $lead_id ) {
 		self::summarize_lead( absint( $lead_id ), false );
+	}
+
+	/**
+	 * Opportunistic fallback when WP-Cron is slow / disabled:
+	 * on front + admin requests, summarize up to 2 overdue leads.
+	 */
+	public static function maybe_process_due_summaries() {
+		if ( wp_doing_cron() || ( defined( 'WP_INSTALLING' ) && WP_INSTALLING ) ) {
+			return;
+		}
+		if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) {
+			return;
+		}
+
+		$lock = get_transient( 'f2f_ai_due_summary_lock' );
+		if ( $lock ) {
+			return;
+		}
+		set_transient( 'f2f_ai_due_summary_lock', 1, 45 );
+
+		$q = new WP_Query(
+			array(
+				'post_type'      => self::POST_TYPE,
+				'post_status'    => 'publish',
+				'posts_per_page' => 2,
+				'fields'         => 'ids',
+				'orderby'        => 'meta_value_num',
+				'order'          => 'ASC',
+				'meta_key'       => '_f2f_summary_due',
+				'meta_query'     => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+					'relation' => 'AND',
+					array(
+						'key'     => '_f2f_summarized',
+						'value'   => '1',
+						'compare' => '!=',
+					),
+					array(
+						'key'     => '_f2f_summary_due',
+						'value'   => time(),
+						'compare' => '<=',
+						'type'    => 'NUMERIC',
+					),
+				),
+				'no_found_rows'  => true,
+			)
+		);
+
+		foreach ( $q->posts as $lead_id ) {
+			self::summarize_lead( (int) $lead_id, false );
+		}
+
+		// Retry summary mails that failed after a successful summarize.
+		if ( class_exists( 'F2F_AI_Chatbot_Notify' ) && F2F_AI_Chatbot_Notify::enabled_on_summary() ) {
+			$retry = new WP_Query(
+				array(
+					'post_type'      => self::POST_TYPE,
+					'post_status'    => 'publish',
+					'posts_per_page' => 2,
+					'fields'         => 'ids',
+					'meta_query'     => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+						'relation' => 'AND',
+						array(
+							'key'   => '_f2f_summarized',
+							'value' => '1',
+						),
+						array(
+							'relation' => 'OR',
+							array(
+								'key'     => '_f2f_notify_summary_sent',
+								'compare' => 'NOT EXISTS',
+							),
+							array(
+								'key'     => '_f2f_notify_summary_sent',
+								'value'   => '1',
+								'compare' => '!=',
+							),
+						),
+					),
+					'no_found_rows'  => true,
+					'date_query'     => array(
+						array(
+							'after' => '7 days ago',
+						),
+					),
+				)
+			);
+			foreach ( $retry->posts as $lead_id ) {
+				F2F_AI_Chatbot_Notify::send_summary( (int) $lead_id );
+			}
+		}
 	}
 
 	/**
