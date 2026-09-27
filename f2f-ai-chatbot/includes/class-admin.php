@@ -386,10 +386,15 @@ class F2F_AI_Chatbot_Admin {
 		$out = array(
 			'plugin'         => F2F_AI_CHATBOT_VERSION,
 			'has_master_key' => $has,
+			'key_looks_ok'   => F2F_AI_Chatbot_Gateway::master_key_looks_valid(),
 			'openai_probe'   => null,
 		);
 		if ( ! $has ) {
 			$out['message'] = __( 'wp-config.php içinde F2F_AI_MASTER_OPENAI_KEY yok veya boş.', 'f2f-ai-chatbot' );
+			wp_send_json_success( $out );
+		}
+		if ( ! F2F_AI_Chatbot_Gateway::master_key_looks_valid() ) {
+			$out['message'] = __( 'Yanlış anahtar: F2F-… lisans yapıştırılmış. OpenAI sk-proj-… / sk-… olmalı.', 'f2f-ai-chatbot' );
 			wp_send_json_success( $out );
 		}
 		$ping = F2F_AI_Chatbot_OpenAI::ping( F2F_AI_Chatbot_Gateway::master_openai_key() );

@@ -24,9 +24,26 @@ class F2F_AI_Chatbot_Gateway {
 	 */
 	public static function master_openai_key() {
 		if ( defined( 'F2F_AI_MASTER_OPENAI_KEY' ) && F2F_AI_MASTER_OPENAI_KEY ) {
-			return (string) F2F_AI_MASTER_OPENAI_KEY;
+			return trim( (string) F2F_AI_MASTER_OPENAI_KEY );
 		}
 		return '';
+	}
+
+	/**
+	 * True when wp-config master key looks like a real OpenAI secret (not an F2F license).
+	 *
+	 * @return bool
+	 */
+	public static function master_key_looks_valid() {
+		$key = self::master_openai_key();
+		if ( '' === $key ) {
+			return false;
+		}
+		// Common mistake: paste F2F-XXXX license into MASTER_OPENAI_KEY.
+		if ( 0 === stripos( $key, 'F2F-' ) ) {
+			return false;
+		}
+		return (bool) preg_match( '/^sk-[A-Za-z0-9_\-]{20,}$/', $key );
 	}
 
 	/**
@@ -139,9 +156,10 @@ class F2F_AI_Chatbot_Gateway {
 		}
 
 		if ( get_transient( 'f2f_ai_platform_down' ) ) {
+			// Soft lock — still allow a retry after short cooldown (was 10 min).
 			return array(
 				'ok'    => false,
-				'error' => __( 'F2F platform geçici olarak yanıt vermiyor. Bir süre sonra tekrar deneyin.', 'f2f-ai-chatbot' ),
+				'error' => __( 'F2F platform son denemede yanıt vermedi. 1–2 dk sonra tekrar deneyin. Hub’da OpenAI anahtarı (sk-…) doğru mu?', 'f2f-ai-chatbot' ),
 			);
 		}
 
@@ -195,7 +213,7 @@ class F2F_AI_Chatbot_Gateway {
 		);
 
 		if ( is_wp_error( $res ) ) {
-			set_transient( 'f2f_ai_platform_down', 1, 10 * MINUTE_IN_SECONDS );
+			set_transient( 'f2f_ai_platform_down', 1, 2 * MINUTE_IN_SECONDS );
 			return array(
 				'ok'    => false,
 				'error' => sprintf(
@@ -212,6 +230,7 @@ class F2F_AI_Chatbot_Gateway {
 
 		// Hub may return HTTP 200 with ok:false (avoids Cloudflare swallowing 502).
 		if ( is_array( $data ) && array_key_exists( 'ok', $data ) && empty( $data['ok'] ) ) {
+			delete_transient( 'f2f_ai_platform_down' );
 			$msg = '';
 			if ( ! empty( $data['error'] ) ) {
 				$msg = (string) $data['error'];
@@ -226,7 +245,7 @@ class F2F_AI_Chatbot_Gateway {
 
 		if ( $code < 200 || $code >= 300 || ! is_array( $data ) ) {
 			if ( $code >= 500 || 0 === $code || 404 === $code ) {
-				set_transient( 'f2f_ai_platform_down', 1, 10 * MINUTE_IN_SECONDS );
+				set_transient( 'f2f_ai_platform_down', 1, 2 * MINUTE_IN_SECONDS );
 			}
 			$msg = sprintf(
 				/* translators: 1: http code */
