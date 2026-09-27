@@ -19,8 +19,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class F2F_AI_Chatbot_Updater {
 
-	const CACHE_KEY = 'f2f_ai_chatbot_update_info';
-	const CACHE_TTL = HOUR_IN_SECONDS * 2;
+	const CACHE_KEY = 'f2f_ai_chatbot_update_info_v2';
+	const CACHE_TTL = 30 * MINUTE_IN_SECONDS;
 	const LAST_ERR  = 'f2f_ai_chatbot_update_last_error';
 
 	/**
@@ -78,7 +78,7 @@ class F2F_AI_Chatbot_Updater {
 	}
 
 	private function __construct() {
-		add_filter( 'pre_set_site_transient_update_plugins', array( $this, 'inject_update' ) );
+		add_filter( 'pre_set_site_transient_update_plugins', array( $this, 'inject_update_fresh' ) );
 		add_filter( 'site_transient_update_plugins', array( $this, 'inject_update' ) );
 		add_filter( 'plugins_api', array( $this, 'plugins_api' ), 10, 3 );
 		add_action( 'upgrader_process_complete', array( $this, 'clear_cache' ), 10, 2 );
@@ -86,6 +86,17 @@ class F2F_AI_Chatbot_Updater {
 		add_action( 'after_plugin_row_' . plugin_basename( F2F_AI_CHATBOT_FILE ), array( $this, 'plugin_row_notice' ), 10, 2 );
 		add_action( 'wp_ajax_f2f_ai_check_update', array( $this, 'ajax_check_update' ) );
 		add_action( 'admin_notices', array( $this, 'admin_notice_update' ) );
+	}
+
+	/**
+	 * During WP update checks, always re-fetch manifest (avoid stale 6h cache).
+	 *
+	 * @param object $transient Transient.
+	 * @return object
+	 */
+	public function inject_update_fresh( $transient ) {
+		self::clear_cache_static();
+		return $this->inject_update( $transient );
 	}
 
 	/**

@@ -1,12 +1,12 @@
 {
   "name": "F2F AI Chatbot",
   "slug": "f2f-ai-chatbot",
-  "version": "1.8.6",
-  "download_url": "https://github.com/f2fbilisim-afk/f2f-ai-chatbot/releases/download/v1.8.6/f2f-ai-chatbot.zip",
+  "version": "1.8.7",
+  "download_url": "https://github.com/f2fbilisim-afk/f2f-ai-chatbot/releases/download/v1.8.7/f2f-ai-chatbot.zip",
   "homepage": "https://www.f2fbilisim.com",
   "requires": "6.0",
   "tested": "6.7",
   "requires_php": "7.4",
   "last_updated": "2026-09-27",
-  "changelog": "<h4>1.8.6</h4><ul><li>Güncelleme kontrolü güçlendirildi (jsDelivr + GitHub).</li><li>Eklentiler sayfasında “Şimdi kontrol et” + hata mesajı.</li><li>Boş checked transient yüzünden güncellemenin gizlenmesi düzeltildi.</li></ul>"
+  "changelog": "<h4>1.8.7</h4><ul><li>Güncelleme kontrolünde eski cache artık engellemez.</li><li>Manifest her WP “güncellemeleri denetle”de taze çekilir.</li></ul>"
 }
