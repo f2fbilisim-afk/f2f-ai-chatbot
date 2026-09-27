@@ -43,8 +43,9 @@ class F2F_AI_Chatbot_Updater {
 		}
 
 		$urls = array(
-			'https://cdn.jsdelivr.net/gh/' . $repo . '@' . rawurlencode( $branch ) . '/updates/f2f-ai-chatbot.json',
+			// Prefer GitHub raw (always latest). jsDelivr is fallback but can lag.
 			'https://raw.githubusercontent.com/' . $repo . '/' . rawurlencode( $branch ) . '/updates/f2f-ai-chatbot.json',
+			'https://cdn.jsdelivr.net/gh/' . $repo . '@' . rawurlencode( $branch ) . '/updates/f2f-ai-chatbot.json',
 		);
 
 		/**
@@ -275,6 +276,7 @@ class F2F_AI_Chatbot_Updater {
 		}
 
 		$last_err = '';
+		$best     = null;
 		foreach ( $urls as $url ) {
 			$res = wp_remote_get(
 				$url,
@@ -283,6 +285,7 @@ class F2F_AI_Chatbot_Updater {
 					'redirection' => 3,
 					'headers'     => array(
 						'Accept'     => 'application/json',
+						'Cache-Control' => 'no-cache',
 						'User-Agent' => 'F2F-AI-Chatbot/' . F2F_AI_CHATBOT_VERSION . '; WordPress/' . get_bloginfo( 'version' ),
 					),
 				)
@@ -320,10 +323,20 @@ class F2F_AI_Chatbot_Updater {
 				'source'       => $url,
 			);
 
-			set_transient( self::CACHE_KEY, $info, self::CACHE_TTL );
+			if ( null === $best || version_compare( $info['version'], $best['version'], '>' ) ) {
+				$best = $info;
+			}
+			// Prefer first URL (GitHub raw) if it's already the newest we've seen and is GitHub.
+			if ( false !== strpos( $url, 'raw.githubusercontent.com' ) ) {
+				break;
+			}
+		}
+
+		if ( $best ) {
+			set_transient( self::CACHE_KEY, $best, self::CACHE_TTL );
 			delete_transient( self::CACHE_KEY . '_fail' );
 			delete_transient( self::LAST_ERR );
-			return $info;
+			return $best;
 		}
 
 		if ( $last_err ) {
