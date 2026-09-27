@@ -215,15 +215,6 @@ class F2F_AI_Chatbot_REST_API {
 			return new WP_Error( 'f2f_long', __( 'Mesaj çok uzun.', 'f2f-ai-chatbot' ), array( 'status' => 400 ) );
 		}
 
-		// Fail fast with JSON — never hang waiting for a missing key / blocked egress.
-		if ( ! F2F_AI_Chatbot_Gateway::master_openai_key() ) {
-			return new WP_Error(
-				'f2f_no_master_key',
-				__( 'wp-config.php içinde F2F_AI_MASTER_OPENAI_KEY tanımlı değil veya boş. /* That\'s all */ satırının ÜSTÜNE define(\'F2F_AI_MASTER_OPENAI_KEY\', \'sk-...\'); ekleyin.', 'f2f-ai-chatbot' ),
-				array( 'status' => 503 )
-			);
-		}
-
 		$rate = $this->check_rate_limit( (int) $settings['rate_limit'] );
 		if ( is_wp_error( $rate ) ) {
 			return $rate;

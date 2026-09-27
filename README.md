@@ -22,14 +22,23 @@ Detay: [PRICING.md](./PRICING.md)
 3. Lisans + e-posta bildirimi  
 4. Siteyi tara  
 
-## Kurulum (F2F)
+Müşteri sitesine **OpenAI / wp-config anahtarı yok**. Sohbet F2F hub’a (`f2fbilisim.com`) gider.
+
+## Kurulum (F2F hub — anahtar yalnız burada)
+
+`f2fbilisim.com` (veya hub siten) `wp-config.php`:
 
 ```php
 define('F2F_AI_MASTER_OPENAI_KEY', 'sk-proj-...');
-// İsteğe bağlı — GitHub repo farklıysa:
-// define('F2F_AI_GITHUB_REPO', 'f2fbilisim-afk/f2f-ai-chatbot');
+// Hub otomatik açılır (master key varsa). Kapatmak için:
+// define('F2F_AI_PLATFORM_MODE', false);
+
+// Müşteri siteleri başka bir hub kullanacaksa (onlarda):
+// define('F2F_AI_PLATFORM_URL', 'https://www.f2fbilisim.com');
 ```
 
+Hub endpoint: `https://www.f2fbilisim.com/wp-json/f2f-ai-platform/v1/ping`  
+( “has_key”: true olmalı )
 ## Otomatik güncelleme (GitHub)
 
 1. Bu repoyu **public** GitHub’a bağlayın (`f2fbilisim-afk/f2f-ai-chatbot` veya kendi adınız).  
