@@ -202,10 +202,14 @@ class F2F_AI_Chatbot_Platform {
 		);
 
 		if ( empty( $result['ok'] ) ) {
-			return new WP_Error(
-				'f2f_hub_openai',
-				isset( $result['error'] ) ? (string) $result['error'] : __( 'OpenAI hatası.', 'f2f-ai-chatbot' ),
-				array( 'status' => 502 )
+			// Do NOT use HTTP 502 — Cloudflare replaces 502 bodies with "error code: 502".
+			return rest_ensure_response(
+				array(
+					'ok'      => false,
+					'error'   => isset( $result['error'] ) ? (string) $result['error'] : __( 'OpenAI hatası.', 'f2f-ai-chatbot' ),
+					'code'    => 'f2f_hub_openai',
+					'message' => isset( $result['error'] ) ? (string) $result['error'] : __( 'OpenAI hatası.', 'f2f-ai-chatbot' ),
+				)
 			);
 		}
 
