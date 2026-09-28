@@ -180,16 +180,16 @@ class F2F_AI_Chatbot_Platform {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function handle_plugin_zip() {
-		if ( ! class_exists( 'ZipArchive' ) ) {
-			return new WP_Error(
-				'f2f_hub_zip',
-				__( 'Sunucuda ZipArchive yok; ZIP üretilemedi.', 'f2f-ai-chatbot' ),
-				array( 'status' => 500 )
-			);
+		$version = F2F_AI_CHATBOT_VERSION;
+
+		// 1) Prefer bundled release ZIP shipped inside the plugin (no ZipArchive needed).
+		$bundled = F2F_AI_CHATBOT_PATH . 'dist/f2f-ai-chatbot.zip';
+		if ( is_readable( $bundled ) && filesize( $bundled ) > 1000 ) {
+			self::stream_zip_file( $bundled );
 		}
 
-		$version = F2F_AI_CHATBOT_VERSION;
-		$upload  = wp_upload_dir();
+		// 2) Build/cache under uploads.
+		$upload = wp_upload_dir();
 		if ( ! empty( $upload['error'] ) ) {
 			return new WP_Error( 'f2f_hub_zip', (string) $upload['error'], array( 'status' => 500 ) );
 		}
@@ -207,62 +207,112 @@ class F2F_AI_Chatbot_Platform {
 			}
 		}
 
-		// Clear older release zips (keep current).
 		foreach ( glob( $dir . '/f2f-ai-chatbot-*.zip' ) as $old ) {
 			if ( $old !== $zip_path && is_file( $old ) ) {
 				@unlink( $old ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 			}
 		}
 
+		self::stream_zip_file( $zip_path );
+	}
+
+	/**
+	 * @param string $zip_path Absolute path.
+	 * @return void
+	 */
+	private static function stream_zip_file( $zip_path ) {
 		nocache_headers();
 		header( 'Content-Type: application/zip' );
 		header( 'Content-Disposition: attachment; filename="f2f-ai-chatbot.zip"' );
 		header( 'Content-Length: ' . (string) filesize( $zip_path ) );
+		header( 'X-F2F-Plugin-Version: ' . F2F_AI_CHATBOT_VERSION );
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile
 		readfile( $zip_path );
 		exit;
 	}
 
 	/**
-	 * Pack plugin directory into a release ZIP.
+	 * Pack plugin directory into a release ZIP (ZipArchive or PclZip).
 	 *
 	 * @param string $zip_path Destination.
 	 * @return true|WP_Error
 	 */
 	private static function build_plugin_zip( $zip_path ) {
-		$root = wp_normalize_path( F2F_AI_CHATBOT_PATH );
-		$root = trailingslashit( $root );
-		$zip  = new ZipArchive();
-		if ( true !== $zip->open( $zip_path, ZipArchive::CREATE | ZipArchive::OVERWRITE ) ) {
-			return new WP_Error( 'f2f_hub_zip', __( 'ZIP açılamadı.', 'f2f-ai-chatbot' ), array( 'status' => 500 ) );
+		$root = trailingslashit( wp_normalize_path( F2F_AI_CHATBOT_PATH ) );
+		$skip = array( '.git', 'node_modules', '.github', 'vendor', 'dist' );
+
+		if ( class_exists( 'ZipArchive' ) ) {
+			$zip = new ZipArchive();
+			if ( true === $zip->open( $zip_path, ZipArchive::CREATE | ZipArchive::OVERWRITE ) ) {
+				$iterator = new RecursiveIteratorIterator(
+					new RecursiveDirectoryIterator( $root, FilesystemIterator::SKIP_DOTS ),
+					RecursiveIteratorIterator::SELF_FIRST
+				);
+				foreach ( $iterator as $file ) {
+					$path  = wp_normalize_path( $file->getPathname() );
+					$rel   = ltrim( substr( $path, strlen( $root ) ), '/' );
+					$parts = explode( '/', $rel );
+					if ( array_intersect( $parts, $skip ) ) {
+						continue;
+					}
+					$local = 'f2f-ai-chatbot/' . $rel;
+					if ( $file->isDir() ) {
+						$zip->addEmptyDir( $local );
+					} else {
+						$zip->addFile( $path, $local );
+					}
+				}
+				$zip->close();
+				if ( file_exists( $zip_path ) && filesize( $zip_path ) > 1000 ) {
+					return true;
+				}
+			}
 		}
 
-		$skip_dirs = array( '.git', 'node_modules', '.github', 'vendor' );
-		$iterator  = new RecursiveIteratorIterator(
-			new RecursiveDirectoryIterator( $root, FilesystemIterator::SKIP_DOTS ),
-			RecursiveIteratorIterator::SELF_FIRST
+		// PclZip fallback (ships with WordPress).
+		if ( ! class_exists( 'PclZip' ) ) {
+			$pcl = ABSPATH . 'wp-admin/includes/class-pclzip.php';
+			if ( is_readable( $pcl ) ) {
+				require_once $pcl;
+			}
+		}
+		if ( class_exists( 'PclZip' ) ) {
+			$files = array();
+			$iterator = new RecursiveIteratorIterator(
+				new RecursiveDirectoryIterator( $root, FilesystemIterator::SKIP_DOTS )
+			);
+			foreach ( $iterator as $file ) {
+				if ( ! $file->isFile() ) {
+					continue;
+				}
+				$path  = wp_normalize_path( $file->getPathname() );
+				$rel   = ltrim( substr( $path, strlen( $root ) ), '/' );
+				$parts = explode( '/', $rel );
+				if ( array_intersect( $parts, $skip ) ) {
+					continue;
+				}
+				$files[] = $path;
+			}
+			$archive = new PclZip( $zip_path );
+			$result  = $archive->create(
+				$files,
+				PCLZIP_OPT_REMOVE_PATH,
+				untrailingslashit( $root ),
+				PCLZIP_OPT_ADD_PATH,
+				'f2f-ai-chatbot'
+			);
+			if ( 0 !== $result && file_exists( $zip_path ) && filesize( $zip_path ) > 1000 ) {
+				return true;
+			}
+			$err = method_exists( $archive, 'errorInfo' ) ? $archive->errorInfo( true ) : 'PclZip failed';
+			return new WP_Error( 'f2f_hub_zip', (string) $err, array( 'status' => 500 ) );
+		}
+
+		return new WP_Error(
+			'f2f_hub_zip',
+			__( 'ZIP üretilemedi (ZipArchive/PclZip yok). dist/f2f-ai-chatbot.zip paketlenmiş sürümü yükleyin.', 'f2f-ai-chatbot' ),
+			array( 'status' => 500 )
 		);
-
-		foreach ( $iterator as $file ) {
-			$path = wp_normalize_path( $file->getPathname() );
-			$rel  = ltrim( substr( $path, strlen( $root ) ), '/' );
-			$parts = explode( '/', $rel );
-			if ( array_intersect( $parts, $skip_dirs ) ) {
-				continue;
-			}
-			$local = 'f2f-ai-chatbot/' . $rel;
-			if ( $file->isDir() ) {
-				$zip->addEmptyDir( $local );
-			} else {
-				$zip->addFile( $path, $local );
-			}
-		}
-		$zip->close();
-
-		if ( ! file_exists( $zip_path ) || filesize( $zip_path ) < 1000 ) {
-			return new WP_Error( 'f2f_hub_zip', __( 'ZIP oluşturulamadı.', 'f2f-ai-chatbot' ), array( 'status' => 500 ) );
-		}
-		return true;
 	}
 
 	/**
