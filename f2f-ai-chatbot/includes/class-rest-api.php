@@ -307,7 +307,7 @@ class F2F_AI_Chatbot_REST_API {
 			array(
 				'reply'            => $reply,
 				'leadId'           => $lead_id ? $lead_id : null,
-				'summaryInSeconds' => 120,
+				'summaryInSeconds' => 60,
 			)
 		);
 	}

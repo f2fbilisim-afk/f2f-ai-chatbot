@@ -1,12 +1,12 @@
 {
   "name": "F2F AI Chatbot",
   "slug": "f2f-ai-chatbot",
-  "version": "1.9.5",
-  "download_url": "https://github.com/f2fbilisim-afk/f2f-ai-chatbot/releases/download/v1.9.5/f2f-ai-chatbot.zip",
+  "version": "1.9.6",
+  "download_url": "https://github.com/f2fbilisim-afk/f2f-ai-chatbot/releases/download/v1.9.6/f2f-ai-chatbot.zip",
   "homepage": "https://www.f2fbilisim.com",
   "requires": "6.0",
   "tested": "6.7",
   "requires_php": "7.4",
   "last_updated": "2026-09-28",
-  "changelog": "<h4>1.9.5</h4><p>WooCommerce \u00fcr\u00fcn kategorileri + panel hizmetleri bilgi bankas\u0131na al\u0131n\u0131r; se\u00e7ilen hizmet i\u00e7in \u201csitede yok\u201d cevab\u0131 engellenir.</p>"
+  "changelog": "<h4>1.9.6</h4><p>Konu\u015fma mailleri F2F hub \u00fczerinden iletilir; \u00f6zet ~60 sn + sekme kapan\u0131nca tetiklenir.</p>"
 }

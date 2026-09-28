@@ -515,9 +515,10 @@
         state.summaryTimer = null;
       }
       if (!state.leadId) return;
+      // ~60s idle → özet + bildirim maili (WP-Cron'a güvenme).
       state.summaryTimer = setTimeout(function () {
         requestSummary(true);
-      }, 120000);
+      }, 60000);
     }
 
     function requestSummary(force) {
@@ -525,15 +526,33 @@
       api('summarize', { leadId: state.leadId, force: !!force }).catch(function () {});
     }
 
-    // If tab closes, try to flush summary timer early via keepalive.
-    window.addEventListener('pagehide', function () {
+    function flushSummaryKeepalive() {
       if (!state.leadId) return;
       try {
-        var body = JSON.stringify({ leadId: state.leadId, force: false });
+        var url = restBase() + 'summarize';
+        var body = JSON.stringify({ leadId: state.leadId, force: true });
         if (navigator.sendBeacon) {
-          // Beacon can't set custom headers easily; rely on WP-Cron primarily.
+          // sendBeacon can't set X-WP-Nonce; use fetch keepalive instead.
         }
+        fetch(url, {
+          method: 'POST',
+          credentials: 'same-origin',
+          keepalive: true,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-WP-Nonce': cfg.nonce || '',
+          },
+          body: body,
+        }).catch(function () {});
       } catch (e) {}
+    }
+
+    // Sekme kapanınca / arka plana düşünce özet + mail tetikle.
+    window.addEventListener('pagehide', flushSummaryKeepalive);
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden') {
+        flushSummaryKeepalive();
+      }
     });
 
     function sendChat(text, historyAlreadyHasUser) {

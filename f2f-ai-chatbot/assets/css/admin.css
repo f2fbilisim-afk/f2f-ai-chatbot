@@ -708,6 +708,12 @@
   color: #0b6e4f;
 }
 
+.f2f-mail-card__inline-hint.is-error {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
 .f2f-scan {
   padding: 14px;
   border-radius: 12px;

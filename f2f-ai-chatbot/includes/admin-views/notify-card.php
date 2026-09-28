@@ -15,6 +15,11 @@ $prefix  = ! empty( $notify_card_id ) ? (string) $notify_card_id : 'f2f_mail';
 $email   = ! empty( $s['notify_email'] ) ? (string) $s['notify_email'] : (string) get_option( 'admin_email' );
 $on_lead = isset( $s['notify_on_lead'] ) ? (string) $s['notify_on_lead'] : '1';
 $on_sum  = isset( $s['notify_on_summary'] ) ? (string) $s['notify_on_summary'] : '1';
+$last    = get_option( 'f2f_ai_notify_last', array() );
+$last_ok = is_array( $last ) && ! empty( $last['ok'] );
+$last_at = ( is_array( $last ) && ! empty( $last['at'] ) ) ? (int) $last['at'] : 0;
+$last_via = ( is_array( $last ) && ! empty( $last['via'] ) ) ? (string) $last['via'] : '';
+$last_err = ( is_array( $last ) && ! empty( $last['error'] ) ) ? (string) $last['error'] : '';
 ?>
 <section class="f2f-mail-card" id="<?php echo esc_attr( $prefix ); ?>_card" aria-labelledby="<?php echo esc_attr( $prefix ); ?>_title">
 	<div class="f2f-mail-card__head">
@@ -22,7 +27,7 @@ $on_sum  = isset( $s['notify_on_summary'] ) ? (string) $s['notify_on_summary'] :
 			<p class="f2f-mail-card__eyebrow"><?php echo esc_html__( 'Otomatik bildirim', 'f2f-ai-chatbot' ); ?></p>
 			<h2 id="<?php echo esc_attr( $prefix ); ?>_title"><?php echo esc_html__( 'Lead e-posta ayarı', 'f2f-ai-chatbot' ); ?></h2>
 			<p class="f2f-mail-card__lede">
-				<?php echo esc_html__( 'Form ve konuşma kayıtları aşağıdaki adrese gider. Konuşma özeti mailinde sohbet metni de yer alır.', 'f2f-ai-chatbot' ); ?>
+				<?php echo esc_html__( 'Form ve konuşma kayıtları aşağıdaki adrese gider. Konuşma bitince (~1 dk) özet + sohbet F2F hub üzerinden iletilir.', 'f2f-ai-chatbot' ); ?>
 			</p>
 		</div>
 	</div>
@@ -57,8 +62,27 @@ $on_sum  = isset( $s['notify_on_summary'] ) ? (string) $s['notify_on_summary'] :
 			</button>
 			<span class="f2f-mail-card__status" id="<?php echo esc_attr( $prefix ); ?>_status" hidden></span>
 		</div>
-		<p class="f2f-mail-card__inline-hint">
-			<?php echo esc_html__( 'Gönderen adresi sitenizin kendi alan adından üretilir (wordpress@alanadiniz.com). Spam klasörünü kontrol edin; gelmezse hosting SMTP eklentisi gerekir.', 'f2f-ai-chatbot' ); ?>
-		</p>
+		<?php if ( $last_at ) : ?>
+			<p class="f2f-mail-card__inline-hint <?php echo $last_ok ? '' : 'is-error'; ?>">
+				<?php
+				echo esc_html(
+					sprintf(
+						/* translators: 1: time 2: via 3: ok/fail */
+						__( 'Son deneme: %1$s · yol: %2$s · %3$s', 'f2f-ai-chatbot' ),
+						wp_date( 'd.m.Y H:i', $last_at ),
+						$last_via ? $last_via : '—',
+						$last_ok ? __( 'başarılı', 'f2f-ai-chatbot' ) : __( 'başarısız', 'f2f-ai-chatbot' )
+					)
+				);
+				if ( ! $last_ok && $last_err ) {
+					echo ' — ' . esc_html( $last_err );
+				}
+				?>
+			</p>
+		<?php else : ?>
+			<p class="f2f-mail-card__inline-hint">
+				<?php echo esc_html__( 'Test maili önce F2F hub üzerinden gider (noreply@f2fbilisim.com). Spam klasörünü kontrol edin. Hub (f2fbilisim.com) de aynı eklenti sürümünde olmalı.', 'f2f-ai-chatbot' ); ?>
+			</p>
+		<?php endif; ?>
 	</div>
 </section>

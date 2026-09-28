@@ -20,32 +20,33 @@ class F2F_AI_Chatbot_Notify {
 	const FROM_NAME = 'F2F AI Chatbot';
 
 	/**
-	 * Prefer a From address on the site's own domain.
-	 * Foreign From (noreply@f2fbilisim.com) is rejected by most hosts.
+	 * Prefer a deliverable From address.
+	 * Hub: noreply@f2fbilisim.com. Customer: admin_email (SMTP plugins bind to this).
 	 *
 	 * @return string
 	 */
 	public static function from_email() {
-		$host = wp_parse_url( home_url(), PHP_URL_HOST );
-		$host = is_string( $host ) ? strtolower( preg_replace( '/^www\./', '', $host ) ) : '';
-
-		$candidate = '';
-		if ( $host && false === strpos( $host, 'localhost' ) && false !== strpos( $host, '.' ) ) {
-			$candidate = 'wordpress@' . $host;
-		}
-
-		if ( $candidate && is_email( $candidate ) ) {
+		if ( class_exists( 'F2F_AI_Chatbot_Platform' ) && F2F_AI_Chatbot_Platform::is_hub() ) {
 			/**
 			 * Filter notification From address.
 			 *
 			 * @param string $email Email.
 			 */
-			return (string) apply_filters( 'f2f_ai_chatbot_notify_from_email', $candidate );
+			return (string) apply_filters( 'f2f_ai_chatbot_notify_from_email', 'noreply@f2fbilisim.com' );
 		}
 
 		$admin = get_option( 'admin_email' );
 		if ( is_email( $admin ) ) {
 			return (string) apply_filters( 'f2f_ai_chatbot_notify_from_email', $admin );
+		}
+
+		$host = wp_parse_url( home_url(), PHP_URL_HOST );
+		$host = is_string( $host ) ? strtolower( preg_replace( '/^www\./', '', $host ) ) : '';
+		if ( $host && false === strpos( $host, 'localhost' ) && false !== strpos( $host, '.' ) ) {
+			$candidate = 'wordpress@' . $host;
+			if ( is_email( $candidate ) ) {
+				return (string) apply_filters( 'f2f_ai_chatbot_notify_from_email', $candidate );
+			}
 		}
 
 		return (string) apply_filters( 'f2f_ai_chatbot_notify_from_email', 'wordpress@localhost' );
@@ -375,7 +376,22 @@ class F2F_AI_Chatbot_Notify {
 	 * @return bool
 	 */
 	private static function mail( $to, $subject, $html, $reply_to = '' ) {
+		$via     = '';
+		$error   = '';
 		$from    = self::from_email();
+		$is_hub  = class_exists( 'F2F_AI_Chatbot_Platform' ) && F2F_AI_Chatbot_Platform::is_hub();
+
+		// Customer sites: try F2F hub relay first (reliable SPF from f2fbilisim.com).
+		if ( ! $is_hub ) {
+			$relay = self::mail_via_hub( $to, $subject, $html, $reply_to );
+			if ( ! empty( $relay['ok'] ) ) {
+				self::store_last( true, $to, $subject, isset( $relay['from'] ) ? $relay['from'] : 'noreply@f2fbilisim.com', 'hub', '' );
+				do_action( 'f2f_ai_chatbot_notify_sent', true, $to, $subject );
+				return true;
+			}
+			$error = isset( $relay['error'] ) ? (string) $relay['error'] : '';
+		}
+
 		$headers = array(
 			'Content-Type: text/html; charset=UTF-8',
 			'From: ' . self::FROM_NAME . ' <' . $from . '>',
@@ -384,16 +400,146 @@ class F2F_AI_Chatbot_Notify {
 			$headers[] = 'Reply-To: ' . $reply_to;
 		}
 
-		$filter = function ( $phpmailer ) use ( $from ) {
+		$mail_error = '';
+		$fail_cb    = static function ( $wp_error ) use ( &$mail_error ) {
+			if ( is_wp_error( $wp_error ) ) {
+				$mail_error = $wp_error->get_error_message();
+			}
+		};
+		add_action( 'wp_mail_failed', $fail_cb );
+
+		$filter = static function ( $phpmailer ) use ( $from ) {
 			$phpmailer->setFrom( $from, self::FROM_NAME, false );
-			$phpmailer->Sender = $from;
+			// Don't force Sender — breaks many shared hosts / SMTP plugins.
 		};
 		add_action( 'phpmailer_init', $filter );
 
 		$ok = wp_mail( $to, $subject, $html, $headers );
 
 		remove_action( 'phpmailer_init', $filter );
+		remove_action( 'wp_mail_failed', $fail_cb );
 
+		$via = $is_hub ? 'hub-local' : 'local';
+		if ( ! $ok && $mail_error ) {
+			$error = $mail_error;
+			update_option( 'f2f_ai_notify_last_error', $mail_error, false );
+		}
+
+		// If local failed and we haven't tried hub yet (shouldn't happen), or hub was down earlier — one more try.
+		if ( ! $ok && ! $is_hub && false === strpos( $error, 'hub' ) ) {
+			$relay = self::mail_via_hub( $to, $subject, $html, $reply_to );
+			if ( ! empty( $relay['ok'] ) ) {
+				self::store_last( true, $to, $subject, isset( $relay['from'] ) ? $relay['from'] : 'noreply@f2fbilisim.com', 'hub-fallback', '' );
+				do_action( 'f2f_ai_chatbot_notify_sent', true, $to, $subject );
+				return true;
+			}
+			if ( ! empty( $relay['error'] ) ) {
+				$error = trim( $error . ' | hub: ' . $relay['error'] );
+			}
+		}
+
+		self::store_last( (bool) $ok, $to, $subject, $from, $via, $error );
+		do_action( 'f2f_ai_chatbot_notify_sent', (bool) $ok, $to, $subject );
+
+		return (bool) $ok;
+	}
+
+	/**
+	 * Send mail through F2F platform hub.
+	 *
+	 * @param string $to       To.
+	 * @param string $subject  Subject.
+	 * @param string $html     HTML.
+	 * @param string $reply_to Reply-To.
+	 * @return array{ok:bool, from?:string, error?:string}
+	 */
+	private static function mail_via_hub( $to, $subject, $html, $reply_to = '' ) {
+		if ( ! class_exists( 'F2F_AI_Chatbot_Platform' ) || ! class_exists( 'F2F_AI_Chatbot_License' ) ) {
+			return array(
+				'ok'    => false,
+				'error' => 'platform missing',
+			);
+		}
+
+		$s       = f2f_ai_chatbot_get_settings();
+		$license = isset( $s['license_key'] ) ? F2F_AI_Chatbot_License::normalize( (string) $s['license_key'] ) : '';
+		if ( ! $license ) {
+			return array(
+				'ok'    => false,
+				'error' => 'no license for hub mail',
+			);
+		}
+
+		$url = F2F_AI_Chatbot_Platform::notify_endpoint();
+		$res = wp_remote_post(
+			$url,
+			array(
+				'timeout'     => 20,
+				'redirection' => 2,
+				'headers'     => array(
+					'Content-Type'  => 'application/json',
+					'Authorization' => 'Bearer ' . $license,
+					'Accept'        => 'application/json',
+					'User-Agent'    => 'F2F-AI-Chatbot/' . F2F_AI_CHATBOT_VERSION,
+				),
+				'body'        => wp_json_encode(
+					array(
+						'license'  => $license,
+						'to'       => $to,
+						'subject'  => $subject,
+						'html'     => $html,
+						'reply_to' => $reply_to,
+						'site_url' => home_url( '/' ),
+					)
+				),
+			)
+		);
+
+		if ( is_wp_error( $res ) ) {
+			return array(
+				'ok'    => false,
+				'error' => $res->get_error_message(),
+			);
+		}
+
+		$code = (int) wp_remote_retrieve_response_code( $res );
+		$data = json_decode( (string) wp_remote_retrieve_body( $res ), true );
+		if ( is_array( $data ) && ! empty( $data['ok'] ) ) {
+			return array(
+				'ok'   => true,
+				'from' => isset( $data['from'] ) ? (string) $data['from'] : 'noreply@f2fbilisim.com',
+			);
+		}
+
+		$err = '';
+		if ( is_array( $data ) ) {
+			if ( ! empty( $data['error'] ) ) {
+				$err = (string) $data['error'];
+			} elseif ( ! empty( $data['message'] ) ) {
+				$err = (string) $data['message'];
+			}
+		}
+		if ( ! $err ) {
+			$err = sprintf( 'hub mail HTTP %d', $code );
+		}
+
+		return array(
+			'ok'    => false,
+			'error' => $err,
+		);
+	}
+
+	/**
+	 * Persist last attempt for admin diagnostics.
+	 *
+	 * @param bool   $ok      Success.
+	 * @param string $to      To.
+	 * @param string $subject Subject.
+	 * @param string $from    From.
+	 * @param string $via     Path.
+	 * @param string $error   Error.
+	 */
+	private static function store_last( $ok, $to, $subject, $from, $via, $error = '' ) {
 		update_option(
 			'f2f_ai_notify_last',
 			array(
@@ -401,20 +547,14 @@ class F2F_AI_Chatbot_Notify {
 				'to'      => $to,
 				'subject' => $subject,
 				'from'    => $from,
+				'via'     => $via,
+				'error'   => $error,
 				'at'      => time(),
 			),
 			false
 		);
-
-		/**
-		 * Fires after a notification attempt.
-		 *
-		 * @param bool   $ok      Success.
-		 * @param string $to      Recipient.
-		 * @param string $subject Subject.
-		 */
-		do_action( 'f2f_ai_chatbot_notify_sent', $ok, $to, $subject );
-
-		return (bool) $ok;
+		if ( $error ) {
+			update_option( 'f2f_ai_notify_last_error', $error, false );
+		}
 	}
 }

@@ -206,8 +206,8 @@ class F2F_AI_Chatbot_Leads {
 			wp_unschedule_event( $ts, self::CRON_HOOK, $args );
 		}
 
-		wp_schedule_single_event( time() + 120, self::CRON_HOOK, $args );
-		update_post_meta( $lead_id, '_f2f_summary_due', time() + 120 );
+		wp_schedule_single_event( time() + 60, self::CRON_HOOK, $args );
+		update_post_meta( $lead_id, '_f2f_summary_due', time() + 60 );
 
 		// Nudge WP-Cron on busy hosts (spawn if possible).
 		spawn_cron();
@@ -332,7 +332,7 @@ class F2F_AI_Chatbot_Leads {
 		$last = (int) get_post_meta( $lead_id, '_f2f_last_activity', true );
 		$due  = (int) get_post_meta( $lead_id, '_f2f_summary_due', true );
 		// If activity happened after this job was scheduled, wait for newer job.
-		if ( ! $force && $due && $last && ( $last + 110 ) > time() ) {
+		if ( ! $force && $due && $last && ( $last + 50 ) > time() ) {
 			self::schedule_summary( $lead_id );
 			return array(
 				'ok'    => false,
