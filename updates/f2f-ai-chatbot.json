@@ -1,12 +1,12 @@
 {
   "name": "F2F AI Chatbot",
   "slug": "f2f-ai-chatbot",
-  "version": "1.9.7",
+  "version": "1.9.8",
   "download_url": "https://www.f2fbilisim.com/wp-json/f2f-ai-platform/v1/plugin-zip",
   "homepage": "https://www.f2fbilisim.com",
   "requires": "6.0",
   "tested": "6.7",
   "requires_php": "7.4",
   "last_updated": "2026-09-28",
-  "changelog": "<h4>1.9.7</h4><p>Otomatik g\u00fcncelleme F2F hub \u00fczerinden; GitHub gecikmesi kalkar.</p>"
+  "changelog": "<h4>1.9.8</h4><p>Mobil widget tam ekran; 4 hizmet kart\u0131 tek ekranda g\u00f6r\u00fcn\u00fcr.</p>"
 }
