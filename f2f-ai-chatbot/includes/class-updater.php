@@ -43,7 +43,9 @@ class F2F_AI_Chatbot_Updater {
 		}
 
 		$urls = array(
-			// Prefer GitHub raw (always latest). jsDelivr is fallback but can lag.
+			// F2F hub first — always matches installed hub plugin version (no GitHub lag).
+			F2F_AI_Chatbot_Platform::public_base_url() . '/wp-json/' . F2F_AI_Chatbot_Platform::NS . '/update',
+			// GitHub raw / jsDelivr fallbacks.
 			'https://raw.githubusercontent.com/' . $repo . '/' . rawurlencode( $branch ) . '/updates/f2f-ai-chatbot.json',
 			'https://cdn.jsdelivr.net/gh/' . $repo . '@' . rawurlencode( $branch ) . '/updates/f2f-ai-chatbot.json',
 		);
@@ -326,10 +328,7 @@ class F2F_AI_Chatbot_Updater {
 			if ( null === $best || version_compare( $info['version'], $best['version'], '>' ) ) {
 				$best = $info;
 			}
-			// Prefer first URL (GitHub raw) if it's already the newest we've seen and is GitHub.
-			if ( false !== strpos( $url, 'raw.githubusercontent.com' ) ) {
-				break;
-			}
+			// Keep scanning all sources; pick the highest version (hub may be newer than GitHub).
 		}
 
 		if ( $best ) {

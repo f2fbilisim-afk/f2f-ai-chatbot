@@ -130,6 +130,139 @@ class F2F_AI_Chatbot_Platform {
 				'permission_callback' => '__return_true',
 			)
 		);
+		register_rest_route(
+			self::NS,
+			'/update',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( $this, 'handle_update_manifest' ),
+				'permission_callback' => '__return_true',
+			)
+		);
+		register_rest_route(
+			self::NS,
+			'/plugin-zip',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( $this, 'handle_plugin_zip' ),
+				'permission_callback' => '__return_true',
+			)
+		);
+	}
+
+	/**
+	 * Update manifest for customer WordPress auto-updates (hub is source of truth).
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function handle_update_manifest() {
+		$base = untrailingslashit( home_url( '/wp-json/' . self::NS ) );
+		return rest_ensure_response(
+			array(
+				'name'         => 'F2F AI Chatbot',
+				'slug'         => 'f2f-ai-chatbot',
+				'version'      => F2F_AI_CHATBOT_VERSION,
+				'download_url' => $base . '/plugin-zip',
+				'homepage'     => 'https://www.f2fbilisim.com',
+				'requires'     => '6.0',
+				'tested'       => '6.7',
+				'requires_php' => '7.4',
+				'last_updated' => gmdate( 'Y-m-d' ),
+				'changelog'    => '<h4>' . esc_html( F2F_AI_CHATBOT_VERSION ) . '</h4><p>F2F hub otomatik güncelleme.</p>',
+				'source'       => 'hub',
+			)
+		);
+	}
+
+	/**
+	 * Stream a ZIP of the currently installed plugin (for customer updates).
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function handle_plugin_zip() {
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			return new WP_Error(
+				'f2f_hub_zip',
+				__( 'Sunucuda ZipArchive yok; ZIP üretilemedi.', 'f2f-ai-chatbot' ),
+				array( 'status' => 500 )
+			);
+		}
+
+		$version = F2F_AI_CHATBOT_VERSION;
+		$upload  = wp_upload_dir();
+		if ( ! empty( $upload['error'] ) ) {
+			return new WP_Error( 'f2f_hub_zip', (string) $upload['error'], array( 'status' => 500 ) );
+		}
+
+		$dir = trailingslashit( $upload['basedir'] ) . 'f2f-ai-releases';
+		if ( ! wp_mkdir_p( $dir ) ) {
+			return new WP_Error( 'f2f_hub_zip', __( 'uploads klasörü yazılamadı.', 'f2f-ai-chatbot' ), array( 'status' => 500 ) );
+		}
+
+		$zip_path = $dir . '/f2f-ai-chatbot-' . $version . '.zip';
+		if ( ! file_exists( $zip_path ) || filesize( $zip_path ) < 1000 ) {
+			$built = self::build_plugin_zip( $zip_path );
+			if ( is_wp_error( $built ) ) {
+				return $built;
+			}
+		}
+
+		// Clear older release zips (keep current).
+		foreach ( glob( $dir . '/f2f-ai-chatbot-*.zip' ) as $old ) {
+			if ( $old !== $zip_path && is_file( $old ) ) {
+				@unlink( $old ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+			}
+		}
+
+		nocache_headers();
+		header( 'Content-Type: application/zip' );
+		header( 'Content-Disposition: attachment; filename="f2f-ai-chatbot.zip"' );
+		header( 'Content-Length: ' . (string) filesize( $zip_path ) );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile
+		readfile( $zip_path );
+		exit;
+	}
+
+	/**
+	 * Pack plugin directory into a release ZIP.
+	 *
+	 * @param string $zip_path Destination.
+	 * @return true|WP_Error
+	 */
+	private static function build_plugin_zip( $zip_path ) {
+		$root = wp_normalize_path( F2F_AI_CHATBOT_PATH );
+		$root = trailingslashit( $root );
+		$zip  = new ZipArchive();
+		if ( true !== $zip->open( $zip_path, ZipArchive::CREATE | ZipArchive::OVERWRITE ) ) {
+			return new WP_Error( 'f2f_hub_zip', __( 'ZIP açılamadı.', 'f2f-ai-chatbot' ), array( 'status' => 500 ) );
+		}
+
+		$skip_dirs = array( '.git', 'node_modules', '.github', 'vendor' );
+		$iterator  = new RecursiveIteratorIterator(
+			new RecursiveDirectoryIterator( $root, FilesystemIterator::SKIP_DOTS ),
+			RecursiveIteratorIterator::SELF_FIRST
+		);
+
+		foreach ( $iterator as $file ) {
+			$path = wp_normalize_path( $file->getPathname() );
+			$rel  = ltrim( substr( $path, strlen( $root ) ), '/' );
+			$parts = explode( '/', $rel );
+			if ( array_intersect( $parts, $skip_dirs ) ) {
+				continue;
+			}
+			$local = 'f2f-ai-chatbot/' . $rel;
+			if ( $file->isDir() ) {
+				$zip->addEmptyDir( $local );
+			} else {
+				$zip->addFile( $path, $local );
+			}
+		}
+		$zip->close();
+
+		if ( ! file_exists( $zip_path ) || filesize( $zip_path ) < 1000 ) {
+			return new WP_Error( 'f2f_hub_zip', __( 'ZIP oluşturulamadı.', 'f2f-ai-chatbot' ), array( 'status' => 500 ) );
+		}
+		return true;
 	}
 
 	/**
