@@ -304,8 +304,26 @@ class F2F_AI_Chatbot_Admin {
 			$raw = array();
 		}
 		$raw['_partial'] = 1;
-		$clean           = $this->sanitize( $raw );
+		$before = f2f_ai_chatbot_get_settings();
+		$clean  = $this->sanitize( $raw );
 		update_option( self::OPTION, $clean, false );
+
+		// Refresh knowledge when services / notes change (not every tiny wizard step).
+		if ( class_exists( 'F2F_AI_Chatbot_Knowledge' ) ) {
+			$watch = array( 'featured_label', 'service_1_label', 'service_2_label', 'service_3_label', 'service_4_label', 'business_notes' );
+			$changed = false;
+			foreach ( $watch as $key ) {
+				$a = isset( $before[ $key ] ) ? (string) $before[ $key ] : '';
+				$b = isset( $clean[ $key ] ) ? (string) $clean[ $key ] : '';
+				if ( $a !== $b ) {
+					$changed = true;
+					break;
+				}
+			}
+			if ( $changed ) {
+				F2F_AI_Chatbot_Knowledge::reindex();
+			}
+		}
 
 		$step = isset( $_POST['step'] ) ? absint( $_POST['step'] ) : 1;
 		update_option( 'f2f_ai_setup_step', max( 1, min( 5, $step ) ), false );

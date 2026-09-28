@@ -4,7 +4,7 @@ Tags: chatbot, openai, ai, widget, customer-support, lead
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.9.4
+Stable tag: 1.9.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -31,6 +31,10 @@ F2F AI Chatbot, WordPress sitenize paket lisanslı bir sohbet balonu ekler. Open
 4. Sonraki sürümler: Eklentiler → Güncelle (F2F update sunucusu).
 
 == Changelog ==
+
+= 1.9.5 =
+* Bilgi bankası WooCommerce ürün kategorilerini ve panel hizmetlerini indeksler.
+* Panelde seçilen hizmet için “sitede bilgi yok” demeyi engeller; Türkçe arama iyileştirildi.
 
 = 1.9.4 =
 * Bildirim mailleri sitenin kendi alan adından gönderilir (yabancı From reddi giderildi).

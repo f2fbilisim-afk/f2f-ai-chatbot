@@ -337,6 +337,7 @@ $steps = array(
 				<button type="button" class="button button-secondary" id="f2f_reindex_btn"><?php echo esc_html__( 'Siteyi şimdi tara', 'f2f-ai-chatbot' ); ?></button>
 				<span id="f2f_reindex_status"></span>
 				<label class="f2f-check"><input type="checkbox" id="wiz_auto_reindex" value="1" <?php checked( $s['auto_reindex'], '1' ); ?> /> <span><?php echo esc_html__( 'İçerik kaydedilince otomatik tara', 'f2f-ai-chatbot' ); ?></span></label>
+				<p class="description"><?php echo esc_html__( 'Hizmet kutusu veya WooCommerce kategori ekledikten sonra mutlaka yeniden tarayın. Tarama: sayfalar, yazılar, ürünler ve ürün kategorileri.', 'f2f-ai-chatbot' ); ?></p>
 			</div>
 			<div class="f2f-done" id="f2f_done_box" <?php echo $setup_done ? '' : 'hidden'; ?>>
 				<strong><?php echo esc_html__( 'Kurulum tamam', 'f2f-ai-chatbot' ); ?></strong>

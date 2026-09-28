@@ -3,7 +3,7 @@
  * Plugin Name:       F2F AI Chatbot
  * Plugin URI:        https://www.f2fbilisim.com
  * Description:       F2F lisanslı AI chatbot — Starter/Business/Pro paket + 1 yıl. OpenAI anahtarı müşteri panelinde yoktur.
- * Version:           1.9.4
+ * Version:           1.9.5
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            F2F Bilişim
@@ -39,7 +39,7 @@ if ( defined( 'F2F_AI_CHATBOT_VERSION' ) || class_exists( 'F2F_AI_Chatbot_Admin'
 	return;
 }
 
-define( 'F2F_AI_CHATBOT_VERSION', '1.9.4' );
+define( 'F2F_AI_CHATBOT_VERSION', '1.9.5' );
 define( 'F2F_AI_CHATBOT_FILE', __FILE__ );
 define( 'F2F_AI_CHATBOT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'F2F_AI_CHATBOT_URL', plugin_dir_url( __FILE__ ) );
@@ -143,7 +143,7 @@ function f2f_ai_chatbot_default_settings() {
 		// Kept internally / migrated; NEVER shown in customer UI.
 		'api_key'              => '',
 		'model'                => 'gpt-4o-mini',
-		'system_prompt'        => "Sen {site_name} web sitesinin yapay zeka asistanısın.\nSite açıklaması: {site_description}\nİşletme notları: {business_notes}\nHizmet/ürün etiketleri: {services}\n\nGörevin: ziyaretçinin sorularını YALNIZCA bu firmanın sunduğu ürün ve hizmetler çerçevesinde yanıtlamak. Sitede olmayan şeyleri önerme.",
+		'system_prompt'        => "Sen {site_name} web sitesinin yapay zeka asistanısın.\nSite açıklaması: {site_description}\nİşletme notları: {business_notes}\nHizmet/ürün etiketleri: {services}\n\nGörevin: ziyaretçinin sorularını bu firmanın sunduğu ürün, kategori ve hizmetler çerçevesinde yanıtlamak. Panelde yazılı hizmetler gerçek hizmetlerdir; \"sitede yok\" deme. Bilmediğin detayda tahmin etme, iletişime yönlendir.",
 		'business_notes'       => '',
 		'auto_reindex'         => '1',
 		'max_tokens'           => 500,
