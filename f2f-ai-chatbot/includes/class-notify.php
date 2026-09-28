@@ -20,19 +20,69 @@ class F2F_AI_Chatbot_Notify {
 	const FROM_NAME = 'F2F AI Chatbot';
 
 	/**
-	 * Prefer a deliverable From address.
-	 * Hub: noreply@f2fbilisim.com. Customer: admin_email (SMTP plugins bind to this).
+	 * True when a dedicated SMTP plugin owns From / auth (must match mailbox).
+	 *
+	 * @return bool
+	 */
+	public static function smtp_plugin_active() {
+		if ( class_exists( '\EasyWPSMTP\Core', false ) || class_exists( 'EasyWPSMTP', false ) || class_exists( '\EasyWPSMTP\Options', false ) ) {
+			return true;
+		}
+		if ( class_exists( '\WPMailSMTP\Core', false ) || class_exists( '\WPMailSMTP\Options', false ) || defined( 'WPMS_PLUGIN_VER' ) ) {
+			return true;
+		}
+		if ( class_exists( 'FluentMail\App\App', false ) || defined( 'FLUENTMAIL' ) ) {
+			return true;
+		}
+		if ( ! function_exists( 'is_plugin_active' ) && file_exists( ABSPATH . 'wp-admin/includes/plugin.php' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+		if ( function_exists( 'is_plugin_active' ) ) {
+			foreach ( array(
+				'easy-wp-smtp/easy-wp-smtp.php',
+				'wp-mail-smtp/wp_mail_smtp.php',
+				'fluent-smtp/fluent-smtp.php',
+				'post-smtp/postman-smtp.php',
+			) as $plugin ) {
+				if ( is_plugin_active( $plugin ) ) {
+					return true;
+				}
+			}
+		}
+		return (bool) apply_filters( 'f2f_ai_chatbot_smtp_plugin_active', false );
+	}
+
+	/**
+	 * From address that matches SMTP auth / WP mail settings.
+	 * Never force noreply@ — mail.f2fbilisim.com rejects mismatched From (SMTP 550).
 	 *
 	 * @return string
 	 */
 	public static function from_email() {
-		if ( class_exists( 'F2F_AI_Chatbot_Platform' ) && F2F_AI_Chatbot_Platform::is_hub() ) {
-			/**
-			 * Filter notification From address.
-			 *
-			 * @param string $email Email.
-			 */
-			return (string) apply_filters( 'f2f_ai_chatbot_notify_from_email', 'noreply@f2fbilisim.com' );
+		// Easy WP SMTP configured From.
+		if ( class_exists( '\EasyWPSMTP\Options', false ) ) {
+			try {
+				$opts = \EasyWPSMTP\Options::init();
+				$fe   = $opts->get( 'mail', 'from_email' );
+				if ( is_email( $fe ) ) {
+					return (string) apply_filters( 'f2f_ai_chatbot_notify_from_email', $fe );
+				}
+			} catch ( Exception $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+				// Fall through.
+			}
+		}
+
+		// WP Mail SMTP.
+		if ( class_exists( '\WPMailSMTP\Options', false ) ) {
+			try {
+				$opts = \WPMailSMTP\Options::init();
+				$fe   = $opts->get( 'mail', 'from_email' );
+				if ( is_email( $fe ) ) {
+					return (string) apply_filters( 'f2f_ai_chatbot_notify_from_email', $fe );
+				}
+			} catch ( Exception $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+				// Fall through.
+			}
 		}
 
 		$admin = get_option( 'admin_email' );
@@ -394,8 +444,13 @@ class F2F_AI_Chatbot_Notify {
 
 		$headers = array(
 			'Content-Type: text/html; charset=UTF-8',
-			'From: ' . self::FROM_NAME . ' <' . $from . '>',
 		);
+		// When Easy WP SMTP / WP Mail SMTP is active, do NOT set From —
+		// server requires From == SMTP auth mailbox ("Gonderici adres ile header eslesmeli").
+		$smtp_owns = self::smtp_plugin_active();
+		if ( ! $smtp_owns && $from && is_email( $from ) ) {
+			$headers[] = 'From: ' . self::FROM_NAME . ' <' . $from . '>';
+		}
 		if ( $reply_to && is_email( $reply_to ) ) {
 			$headers[] = 'Reply-To: ' . $reply_to;
 		}
@@ -408,15 +463,19 @@ class F2F_AI_Chatbot_Notify {
 		};
 		add_action( 'wp_mail_failed', $fail_cb );
 
-		$filter = static function ( $phpmailer ) use ( $from ) {
-			$phpmailer->setFrom( $from, self::FROM_NAME, false );
-			// Don't force Sender — breaks many shared hosts / SMTP plugins.
-		};
-		add_action( 'phpmailer_init', $filter );
+		$filter = null;
+		if ( ! $smtp_owns && $from && is_email( $from ) ) {
+			$filter = static function ( $phpmailer ) use ( $from ) {
+				$phpmailer->setFrom( $from, self::FROM_NAME, false );
+			};
+			add_action( 'phpmailer_init', $filter, 5 );
+		}
 
 		$ok = wp_mail( $to, $subject, $html, $headers );
 
-		remove_action( 'phpmailer_init', $filter );
+		if ( $filter ) {
+			remove_action( 'phpmailer_init', $filter, 5 );
+		}
 		remove_action( 'wp_mail_failed', $fail_cb );
 
 		$via = $is_hub ? 'hub-local' : 'local';

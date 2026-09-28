@@ -320,7 +320,11 @@ class F2F_AI_Chatbot_Platform {
 		}
 		set_transient( $rl_key, $n + 1, HOUR_IN_SECONDS );
 
-		$from = 'noreply@f2fbilisim.com';
+		// Match Easy WP SMTP / WP Mail SMTP mailbox — never force noreply@
+		// (mail.f2fbilisim.com: "Gonderici adres ile header bigisi eslesmeli" / SMTP 550).
+		$from = class_exists( 'F2F_AI_Chatbot_Notify' )
+			? F2F_AI_Chatbot_Notify::from_email()
+			: (string) get_option( 'admin_email' );
 		/**
 		 * Filter hub notification From.
 		 *
@@ -328,10 +332,13 @@ class F2F_AI_Chatbot_Platform {
 		 */
 		$from = (string) apply_filters( 'f2f_ai_chatbot_hub_notify_from', $from );
 
-		$headers = array(
+		$headers   = array(
 			'Content-Type: text/html; charset=UTF-8',
-			'From: F2F AI Chatbot <' . $from . '>',
 		);
+		$smtp_owns = class_exists( 'F2F_AI_Chatbot_Notify' ) && F2F_AI_Chatbot_Notify::smtp_plugin_active();
+		if ( ! $smtp_owns && $from && is_email( $from ) ) {
+			$headers[] = 'From: F2F AI Chatbot <' . $from . '>';
+		}
 		if ( $reply_to && is_email( $reply_to ) ) {
 			$headers[] = 'Reply-To: ' . $reply_to;
 		}
@@ -339,10 +346,13 @@ class F2F_AI_Chatbot_Platform {
 			$headers[] = 'X-F2F-Site: ' . $site_url;
 		}
 
-		$filter = static function ( $phpmailer ) use ( $from ) {
-			$phpmailer->setFrom( $from, 'F2F AI Chatbot', false );
-			$phpmailer->Sender = $from;
-		};
+		$filter = null;
+		if ( ! $smtp_owns && $from && is_email( $from ) ) {
+			$filter = static function ( $phpmailer ) use ( $from ) {
+				$phpmailer->setFrom( $from, 'F2F AI Chatbot', false );
+			};
+			add_action( 'phpmailer_init', $filter, 5 );
+		}
 		$mail_error = '';
 		$fail_cb    = static function ( $wp_error ) use ( &$mail_error ) {
 			if ( is_wp_error( $wp_error ) ) {
@@ -350,9 +360,10 @@ class F2F_AI_Chatbot_Platform {
 			}
 		};
 		add_action( 'wp_mail_failed', $fail_cb );
-		add_action( 'phpmailer_init', $filter );
 		$ok = wp_mail( $to, $subject, $html, $headers );
-		remove_action( 'phpmailer_init', $filter );
+		if ( $filter ) {
+			remove_action( 'phpmailer_init', $filter, 5 );
+		}
 		remove_action( 'wp_mail_failed', $fail_cb );
 
 		$error = '';
