@@ -2,11 +2,11 @@
   "name": "F2F AI Chatbot",
   "slug": "f2f-ai-chatbot",
   "version": "1.9.10",
-  "download_url": "https://www.f2fbilisim.com/wp-json/f2f-ai-platform/v1/plugin-zip",
+  "download_url": "https://github.com/f2fbilisim-afk/f2f-ai-chatbot/releases/download/v1.9.10/f2f-ai-chatbot.zip",
   "homepage": "https://www.f2fbilisim.com",
   "requires": "6.0",
   "tested": "6.7",
   "requires_php": "7.4",
-  "last_updated": "2026-09-28",
-  "changelog": "<h4>1.9.10</h4><p>F2F hub otomatik güncelleme.</p>"
+  "last_updated": "2026-09-29",
+  "changelog": "<h4>1.9.10</h4><p>SMTP From d\u00fczeltmesi, mobil sheet, hub ZIP; otomatik g\u00fcncelleme tekrar GitHub Releases.</p>"
 }
