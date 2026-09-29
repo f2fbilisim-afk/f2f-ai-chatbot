@@ -150,5 +150,49 @@
           toast(f2fAiConv.i18n.fail, true);
         });
     });
+
+    $(document).on('click', '.f2f-lead-card__delete', function (e) {
+      e.preventDefault();
+      if (!window.f2fAiConv) return;
+      var confirmMsg =
+        f2fAiConv.i18n.deleteConfirm ||
+        'Bu konuşmayı kalıcı olarak silmek istiyor musunuz?';
+      if (!window.confirm(confirmMsg)) return;
+
+      var $btn = $(this);
+      var id = $btn.data('id');
+      var $card = $btn.closest('.f2f-lead-card');
+      $btn.prop('disabled', true);
+
+      $.post(f2fAiConv.ajaxUrl, {
+        action: 'f2f_ai_delete_lead',
+        nonce: f2fAiConv.nonce,
+        id: id,
+      })
+        .done(function (res) {
+          if (res && res.success) {
+            $card.fadeOut(180, function () {
+              $(this).remove();
+              applyFilters();
+              if (!$('.f2f-lead-card').length) {
+                location.reload();
+              }
+            });
+            toast(
+              (res.data && res.data.message) ||
+                f2fAiConv.i18n.deleted ||
+                'Silindi',
+              false
+            );
+          } else {
+            $btn.prop('disabled', false);
+            toast(f2fAiConv.i18n.deleteFail || 'Silinemedi', true);
+          }
+        })
+        .fail(function () {
+          $btn.prop('disabled', false);
+          toast(f2fAiConv.i18n.deleteFail || 'Silinemedi', true);
+        });
+    });
   });
 })(jQuery);

@@ -180,14 +180,17 @@ class F2F_AI_Chatbot_Conversations_Admin {
 				'nonce'       => wp_create_nonce( 'f2f_ai_lead_status' ),
 				'notifyNonce' => wp_create_nonce( 'f2f_ai_admin' ),
 				'i18n'        => array(
-					'saved'      => __( 'Durum güncellendi', 'f2f-ai-chatbot' ),
-					'fail'       => __( 'Güncellenemedi', 'f2f-ai-chatbot' ),
-					'empty'      => __( 'Bu filtrede kayıt yok.', 'f2f-ai-chatbot' ),
-					'mailSaving' => __( 'Kaydediliyor…', 'f2f-ai-chatbot' ),
-					'mailSaved'  => __( 'E-posta ayarı kaydedildi', 'f2f-ai-chatbot' ),
-					'mailFail'   => __( 'E-posta ayarı kaydedilemedi', 'f2f-ai-chatbot' ),
-					'mailTesting'=> __( 'Test maili gönderiliyor…', 'f2f-ai-chatbot' ),
+					'saved'       => __( 'Durum güncellendi', 'f2f-ai-chatbot' ),
+					'fail'        => __( 'Güncellenemedi', 'f2f-ai-chatbot' ),
+					'empty'       => __( 'Bu filtrede kayıt yok.', 'f2f-ai-chatbot' ),
+					'mailSaving'  => __( 'Kaydediliyor…', 'f2f-ai-chatbot' ),
+					'mailSaved'   => __( 'E-posta ayarı kaydedildi', 'f2f-ai-chatbot' ),
+					'mailFail'    => __( 'E-posta ayarı kaydedilemedi', 'f2f-ai-chatbot' ),
+					'mailTesting' => __( 'Test maili gönderiliyor…', 'f2f-ai-chatbot' ),
 					'mailTestFail'=> __( 'Test maili gönderilemedi', 'f2f-ai-chatbot' ),
+					'deleteConfirm' => __( 'Bu konuşmayı kalıcı olarak silmek istiyor musunuz?', 'f2f-ai-chatbot' ),
+					'deleted'     => __( 'Konuşma silindi', 'f2f-ai-chatbot' ),
+					'deleteFail'  => __( 'Silinemedi', 'f2f-ai-chatbot' ),
 				),
 			)
 		);
@@ -361,14 +364,24 @@ class F2F_AI_Chatbot_Conversations_Admin {
 											<a class="is-wa" href="https://wa.me/<?php echo esc_attr( $wa_href ); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html__( 'WhatsApp', 'f2f-ai-chatbot' ); ?></a>
 										<?php endif; ?>
 									</div>
-									<label class="f2f-lead-card__status">
-										<span class="screen-reader-text"><?php echo esc_html__( 'Durum', 'f2f-ai-chatbot' ); ?></span>
-										<select class="f2f-conv__status" data-id="<?php echo esc_attr( (string) $row['id'] ); ?>">
-											<?php foreach ( $statuses as $val => $lab ) : ?>
-												<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $status_key, $val ); ?>><?php echo esc_html( $lab ); ?></option>
-											<?php endforeach; ?>
-										</select>
-									</label>
+									<div class="f2f-lead-card__actions">
+										<label class="f2f-lead-card__status">
+											<span class="screen-reader-text"><?php echo esc_html__( 'Durum', 'f2f-ai-chatbot' ); ?></span>
+											<select class="f2f-conv__status" data-id="<?php echo esc_attr( (string) $row['id'] ); ?>">
+												<?php foreach ( $statuses as $val => $lab ) : ?>
+													<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $status_key, $val ); ?>><?php echo esc_html( $lab ); ?></option>
+												<?php endforeach; ?>
+											</select>
+										</label>
+										<button
+											type="button"
+											class="f2f-lead-card__delete"
+											data-id="<?php echo esc_attr( (string) $row['id'] ); ?>"
+											aria-label="<?php echo esc_attr__( 'Konuşmayı sil', 'f2f-ai-chatbot' ); ?>"
+										>
+											<?php echo esc_html__( 'Sil', 'f2f-ai-chatbot' ); ?>
+										</button>
+									</div>
 								</div>
 							</article>
 						<?php endforeach; ?>

@@ -52,6 +52,7 @@ class F2F_AI_Chatbot_Leads {
 		add_action( 'init', array( __CLASS__, 'maybe_process_due_summaries' ), 30 );
 		add_action( self::CRON_HOOK, array( __CLASS__, 'cron_summarize' ), 10, 1 );
 		add_action( 'wp_ajax_f2f_ai_update_lead_status', array( $this, 'ajax_update_status' ) );
+		add_action( 'wp_ajax_f2f_ai_delete_lead', array( $this, 'ajax_delete_lead' ) );
 	}
 
 	/**
@@ -525,6 +526,44 @@ class F2F_AI_Chatbot_Leads {
 				'id'     => $id,
 				'status' => $status,
 				'label'  => self::statuses()[ $status ],
+			)
+		);
+	}
+
+	/**
+	 * AJAX permanently delete a lead / conversation.
+	 */
+	public function ajax_delete_lead() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => 'Forbidden' ), 403 );
+		}
+		check_ajax_referer( 'f2f_ai_lead_status', 'nonce' );
+
+		$id = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+		if ( ! $id ) {
+			wp_send_json_error( array( 'message' => 'Geçersiz' ), 400 );
+		}
+
+		$post = get_post( $id );
+		if ( ! $post || self::POST_TYPE !== $post->post_type ) {
+			wp_send_json_error( array( 'message' => 'Kayıt yok' ), 404 );
+		}
+
+		// Clear pending summary cron for this lead.
+		$args = array( $id );
+		while ( $ts = wp_next_scheduled( self::CRON_HOOK, $args ) ) { // phpcs:ignore
+			wp_unschedule_event( $ts, self::CRON_HOOK, $args );
+		}
+
+		$deleted = wp_delete_post( $id, true );
+		if ( ! $deleted ) {
+			wp_send_json_error( array( 'message' => __( 'Silinemedi', 'f2f-ai-chatbot' ) ), 500 );
+		}
+
+		wp_send_json_success(
+			array(
+				'id'      => $id,
+				'message' => __( 'Konuşma silindi', 'f2f-ai-chatbot' ),
 			)
 		);
 	}
