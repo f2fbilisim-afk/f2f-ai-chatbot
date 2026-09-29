@@ -85,6 +85,10 @@ class F2F_AI_Chatbot_Frontend {
 			'offline'    => __( 'Bağlantı kurulamadı. Sayfayı yenileyip tekrar deneyin.', 'f2f-ai-chatbot' ),
 			'serverError'=> __( 'Sunucu JSON döndürmedi — zaman aşımı, Cloudflare veya PHP hatası olabilir.', 'f2f-ai-chatbot' ),
 			'required'   => __( 'Lütfen tüm alanları doldurun.', 'f2f-ai-chatbot' ),
+			'captcha'    => __( 'Robot musunuz?', 'f2f-ai-chatbot' ),
+			'captchaPh'  => __( 'Sonuç', 'f2f-ai-chatbot' ),
+			'captchaNeed'=> __( 'Güvenlik sorusunu yanıtlayın.', 'f2f-ai-chatbot' ),
+			'captchaFail'=> __( 'Güvenlik sorusu yanlış. Yeni soruyu deneyin.', 'f2f-ai-chatbot' ),
 		);
 
 		wp_localize_script( 'f2f-ai-chatbot-widget', 'f2fAiChatbot', $config );

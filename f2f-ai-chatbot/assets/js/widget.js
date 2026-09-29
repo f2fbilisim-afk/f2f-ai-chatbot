@@ -315,6 +315,69 @@
     leadForm.appendChild(phoneField.wrap);
     leadForm.appendChild(emailField.wrap);
 
+    // Honeypot — hidden from humans, bots often fill it.
+    var honeyWrap = el('div', 'f2f-ai-hp');
+    honeyWrap.setAttribute('aria-hidden', 'true');
+    var honeyInput = el('input', null, {
+      type: 'text',
+      name: 'website',
+      tabindex: '-1',
+      autocomplete: 'off',
+    });
+    honeyWrap.appendChild(honeyInput);
+    leadForm.appendChild(honeyWrap);
+
+    var captchaWrap = el('div', 'f2f-ai-captcha');
+    captchaWrap.appendChild(
+      el('label', null, {
+        text: i18n.captcha || 'Robot musunuz?',
+        for: 'f2f_captcha_answer',
+      })
+    );
+    var captchaRow = el('div', 'f2f-ai-captcha__row');
+    var captchaQ = el('span', 'f2f-ai-captcha__q', { text: '…' });
+    var captchaInput = el('input', null, {
+      id: 'f2f_captcha_answer',
+      name: 'captcha_answer',
+      type: 'text',
+      inputmode: 'numeric',
+      autocomplete: 'off',
+      placeholder: i18n.captchaPh || 'Sonuç',
+      required: 'required',
+    });
+    captchaRow.appendChild(captchaQ);
+    captchaRow.appendChild(captchaInput);
+    captchaWrap.appendChild(captchaRow);
+    leadForm.appendChild(captchaWrap);
+
+    var captchaId = '';
+    function loadCaptcha() {
+      captchaId = '';
+      captchaQ.textContent = '…';
+      captchaInput.value = '';
+      return fetch(restBase() + 'captcha', {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: { 'X-WP-Nonce': cfg.nonce || '' },
+      })
+        .then(function (res) {
+          return res.json().then(function (data) {
+            return { ok: res.ok, data: data };
+          });
+        })
+        .then(function (out) {
+          if (out.ok && out.data && out.data.id) {
+            captchaId = String(out.data.id);
+            captchaQ.textContent = String(out.data.question || '');
+          } else {
+            captchaQ.textContent = '?';
+          }
+        })
+        .catch(function () {
+          captchaQ.textContent = '?';
+        });
+    }
+
     var leadSubmit = el('button', 'f2f-ai-lead-submit', {
       type: 'submit',
       text: leadCfg.btn || 'Devam et',
@@ -346,10 +409,19 @@
         email: emailField.input.value.trim(),
         service: state.pendingService,
         intent: state.pendingIntent,
+        website: honeyInput.value || '',
+        captcha_id: captchaId,
+        captcha_answer: captchaInput.value.trim(),
       };
       if (!payload.first_name || !payload.last_name || !payload.phone || !payload.email) {
         leadErr.textContent = i18n.required || 'Lütfen tüm alanları doldurun.';
         leadErr.classList.add('is-visible');
+        return;
+      }
+      if (!payload.captcha_id || !payload.captcha_answer) {
+        leadErr.textContent = i18n.captchaNeed || 'Güvenlik sorusunu yanıtlayın.';
+        leadErr.classList.add('is-visible');
+        loadCaptcha();
         return;
       }
       state.busy = true;
@@ -363,6 +435,7 @@
               'Error';
             leadErr.textContent = msg;
             leadErr.classList.add('is-visible');
+            loadCaptcha();
             return;
           }
           state.lead = payload;
@@ -400,6 +473,7 @@
         .catch(function () {
           leadErr.textContent = i18n.offline || i18n.error || 'Offline';
           leadErr.classList.add('is-visible');
+          loadCaptcha();
         })
         .finally(function () {
           state.busy = false;
@@ -477,6 +551,7 @@
         scr.classList.toggle('is-active', scr.getAttribute('data-screen') === name);
       });
       if (name === 'lead') {
+        loadCaptcha();
         firstField.input.focus();
       } else if (name === 'chat') {
         cInput.focus();

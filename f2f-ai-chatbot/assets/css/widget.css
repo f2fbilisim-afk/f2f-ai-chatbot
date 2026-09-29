@@ -537,6 +537,69 @@
   display: block;
 }
 
+.f2f-ai-hp {
+  position: absolute;
+  left: -10000px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.f2f-ai-captcha {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.f2f-ai-captcha > label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.f2f-ai-captcha__row {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) 1fr;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.f2f-ai-captcha__q {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px dashed #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.f2f-ai-captcha input {
+  width: 100%;
+  border: 1px solid var(--f2f-line);
+  border-radius: 12px;
+  padding: 11px 12px;
+  font: inherit;
+  font-size: 14px;
+  background: #fff;
+  color: var(--f2f-ink);
+}
+
+.f2f-ai-captcha input:focus {
+  outline: none;
+  border-color: var(--f2f-green);
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+}
+
 /* Chat */
 .f2f-ai-messages {
   flex: 1;

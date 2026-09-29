@@ -48,6 +48,16 @@ class F2F_AI_Chatbot_REST_API {
 
 		register_rest_route(
 			self::NS,
+			'/captcha',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( $this, 'handle_captcha' ),
+				'permission_callback' => '__return_true',
+			)
+		);
+
+		register_rest_route(
+			self::NS,
 			'/lead',
 			array(
 				'methods'             => 'POST',
@@ -143,10 +153,75 @@ class F2F_AI_Chatbot_REST_API {
 	}
 
 	/**
+	 * Issue a one-shot math captcha (answer stored in transient).
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function handle_captcha() {
+		$a = wp_rand( 1, 9 );
+		$b = wp_rand( 1, 9 );
+		if ( 1 === wp_rand( 0, 1 ) && $a >= $b ) {
+			$answer   = $a - $b;
+			$question = $a . ' − ' . $b;
+		} else {
+			$answer   = $a + $b;
+			$question = $a . ' + ' . $b;
+		}
+
+		$id = wp_generate_password( 20, false, false );
+		set_transient( 'f2f_captcha_' . $id, (string) $answer, 15 * MINUTE_IN_SECONDS );
+
+		return rest_ensure_response(
+			array(
+				'id'       => $id,
+				'question' => $question . ' = ?',
+			)
+		);
+	}
+
+	/**
+	 * @param WP_REST_Request $request Request.
+	 * @return true|WP_Error
+	 */
+	private function verify_captcha( $request ) {
+		// Honeypot — real users leave this empty.
+		$hp = trim( (string) $request->get_param( 'website' ) );
+		if ( '' !== $hp ) {
+			return new WP_Error( 'f2f_bot', __( 'İstek reddedildi.', 'f2f-ai-chatbot' ), array( 'status' => 400 ) );
+		}
+
+		$id     = sanitize_text_field( (string) $request->get_param( 'captcha_id' ) );
+		$answer = trim( (string) $request->get_param( 'captcha_answer' ) );
+		if ( '' === $id || '' === $answer ) {
+			return new WP_Error( 'f2f_captcha', __( 'Güvenlik sorusunu yanıtlayın.', 'f2f-ai-chatbot' ), array( 'status' => 400 ) );
+		}
+
+		$key      = 'f2f_captcha_' . $id;
+		$expected = get_transient( $key );
+		delete_transient( $key );
+
+		if ( false === $expected || (string) $answer !== (string) $expected ) {
+			return new WP_Error( 'f2f_captcha', __( 'Güvenlik sorusu yanlış. Yeni soruyu deneyin.', 'f2f-ai-chatbot' ), array( 'status' => 400 ) );
+		}
+
+		return true;
+	}
+
+	/**
 	 * @param WP_REST_Request $request Request.
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function handle_lead( $request ) {
+		$captcha = $this->verify_captcha( $request );
+		if ( is_wp_error( $captcha ) ) {
+			return $captcha;
+		}
+
+		$lead_rl = $this->check_lead_rate_limit();
+		if ( is_wp_error( $lead_rl ) ) {
+			return $lead_rl;
+		}
+
 		$first   = trim( (string) $request->get_param( 'first_name' ) );
 		$last    = trim( (string) $request->get_param( 'last_name' ) );
 		$phone   = trim( (string) $request->get_param( 'phone' ) );
@@ -344,6 +419,26 @@ class F2F_AI_Chatbot_REST_API {
 				'interest' => $out['interest'],
 			)
 		);
+	}
+
+	/**
+	 * Soft cap on lead form spam per IP.
+	 *
+	 * @return true|WP_Error
+	 */
+	private function check_lead_rate_limit() {
+		$ip   = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : 'unknown';
+		$key  = 'f2f_ai_lead_rl_' . md5( $ip );
+		$hits = (int) get_transient( $key );
+		if ( $hits >= 12 ) {
+			return new WP_Error(
+				'f2f_rate',
+				__( 'Çok fazla istek. Lütfen sonra tekrar deneyin.', 'f2f-ai-chatbot' ),
+				array( 'status' => 429 )
+			);
+		}
+		set_transient( $key, $hits + 1, HOUR_IN_SECONDS );
+		return true;
 	}
 
 	/**
